@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nasz Ślub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Nawigacja -->
+  <nav class="nav">
+    <div class="container nav-inner">
+      <a href="#" class="nav-logo" id="nav-logo">Anna & Michał</a>
+      <ul class="nav-links">
+        <li><a href="#countdown">Odliczanie</a></li>
+        <li><a href="#story">O nas</a></li>
+        <li><a href="#schedule">Plan dnia</a></li>
+        <li><a href="#info">Informacje</a></li>
+        <li><a href="#rsvp">RSVP</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ul>
+      <button class="nav-toggle" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <header class="hero">
+    <div>
+      <div class="hero-ornament">✦</div>
+      <h1 class="hero-names">
+        <span id="hero-bride">Anna</span>
+        <span class="hero-ampersand">&</span>
+        <span id="hero-groom">Michał</span>
+      </h1>
+      <p class="hero-date" id="hero-date">sobota, 12 września 2026, 15:00</p>
+      <p class="hero-venue" id="hero-venue">Pałac w Wilanowie</p>
+    </div>
+    <a href="#countdown" class="hero-scroll">Przewiń w dół ↓</a>
+  </header>
+
+  <!-- Odliczanie -->
+  <section class="countdown-section" id="countdown">
+    <div class="container">
+      <p class="section-label">Do naszego dnia pozostało</p>
+      <h2 class="section-title">Odliczamy dni</h2>
+      <div class="countdown">
+        <div class="countdown-item">
+          <div class="countdown-number" id="countdown-days">0</div>
+          <div class="countdown-label">Dni</div>
+        </div>
+        <div class="countdown-item">
+          <div class="countdown-number" id="countdown-hours">0</div>
+          <div class="countdown-label">Godzin</div>
+        </div>
+        <div class="countdown-item">
+          <div class="countdown-number" id="countdown-minutes">0</div>
+          <div class="countdown-label">Minut</div>
+        </div>
+        <div class="countdown-item">
+          <div class="countdown-number" id="countdown-seconds">0</div>
+          <div class="countdown-label">Sekund</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Historia -->
+  <section class="section" id="story">
+    <div class="container">
+      <div class="section-header">
+        <p class="section-label">Nasza historia</p>
+        <h2 class="section-title">Jak to się zaczęło</h2>
+        <p id="story-text">Poznaliśmy się w 2019 roku...</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Plan dnia -->
+  <section class="section section-alt" id="schedule">
+    <div class="container">
+      <div class="section-header">
+        <p class="section-label">Harmonogram</p>
+        <h2 class="section-title">Plan dnia</h2>
+      </div>
+      <div class="timeline" id="timeline"></div>
+    </div>
+  </section>
+
+  <!-- Informacje praktyczne -->
+  <section class="section" id="info">
+    <div class="container">
+      <div class="section-header">
+        <p class="section-label">Przygotuj się</p>
+        <h2 class="section-title">Informacje praktyczne</h2>
+      </div>
+      <div class="cards-grid">
+        <div class="card">
+          <div class="card-icon">📍</div>
+          <h3>Miejsce</h3>
+          <p><strong id="venue-name">Pałac w Wilanowie</strong><br><span id="venue-address">ul. Stanisława Kostki Potockiego 10/16</span></p>
+          <a href="#" id="venue-map-link" class="btn-link" target="_blank" rel="noopener">Zobacz na mapie →</a>
+        </div>
+        <div class="card">
+          <div class="card-icon">👔</div>
+          <h3>Dress code</h3>
+          <p id="dress-code-text">Elegancki strój wieczorowy.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🏨</div>
+          <h3>Nocleg</h3>
+          <p id="accommodation-text">Polecane hotele w okolicy.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🎁</div>
+          <h3>Prezenty</h3>
+          <p id="gifts-text">Wasza obecność to największy prezent!</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">📧</div>
+          <h3>Kontakt</h3>
+          <p>
+            <a id="contact-email-link" href="#"><span id="contact-email">email@example.com</span></a><br>
+            <a id="contact-phone-link" href="#"><span id="contact-phone">+48 600 000 000</span></a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RSVP -->
+  <section class="section rsvp-section" id="rsvp">
+    <div class="container">
+      <div class="section-header">
+        <p class="section-label">Potwierdzenie obecności</p>
+        <h2 class="section-title">RSVP</h2>
+        <p>Prosimy o potwierdzenie do <strong id="rsvp-deadline">1 sierpnia 2026</strong>. Osobisty link z zaproszeniem otrzymasz od nas wiadomością — po kliknięciu kod wypełni się automatycznie.</p>
+      </div>
+
+      <div class="rsvp-form-wrapper">
+        <div id="rsvp-message" class="form-message"></div>
+
+        <!-- Krok 1: Kod -->
+        <div class="rsvp-step active" id="rsvp-step-code">
+          <div class="form-group">
+            <label for="rsvp-code">Kod zaproszenia</label>
+            <input type="text" id="rsvp-code" placeholder="Kod z wiadomości SMS" autocomplete="off">
+            <p class="rsvp-code-hint">Jeśli link nie wypełnił kodu automatycznie, wpisz go ręcznie z wiadomości.</p>
+          </div>
+          <button type="button" class="btn btn-primary btn-block" id="rsvp-verify-btn">Sprawdź kod</button>
+        </div>
+
+        <!-- Krok 2: Formularz -->
+        <div class="rsvp-step" id="rsvp-step-form">
+          <h3 id="rsvp-guest-name" style="margin-bottom:8px;font-family:var(--font-heading);"></h3>
+          <p id="rsvp-guest-info" style="color:var(--text-muted);font-size:0.9375rem;margin-bottom:24px;"></p>
+
+          <form id="rsvp-form">
+            <div class="form-group">
+              <label>Czy weźmiesz udział?</label>
+              <div class="radio-group">
+                <label class="radio-item">
+                  <input type="radio" name="attending" value="yes" checked> Tak, z przyjemnością!
+                </label>
+                <label class="radio-item">
+                  <input type="radio" name="attending" value="no"> Niestety, nie dam rady
+                </label>
+              </div>
+            </div>
+
+            <div id="rsvp-attending-section">
+              <div class="form-group">
+                <label for="rsvp-guest-count">Liczba osób (w tym Ty)</label>
+                <select id="rsvp-guest-count"></select>
+              </div>
+            </div>
+
+            <div id="rsvp-diet-section">
+              <div class="form-group">
+                <label>Preferencje dietetyczne</label>
+                <div class="checkbox-group">
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="diet" value="vegetarian"> Wegetariańskie
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="diet" value="vegan"> Wegańskie
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="diet" value="glutenFree"> Bezglutenowe
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" name="diet" value="kids"> Menu dla dziecka
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="rsvp-allergies">Alergie i nietolerancje</label>
+                <input type="text" id="rsvp-allergies" placeholder="np. orzechy, laktoza...">
+              </div>
+
+              <div class="form-group">
+                <label for="rsvp-song">Prośba o piosenkę</label>
+                <input type="text" id="rsvp-song" placeholder="Jaki utwór chcesz usłyszeć na parkiecie?">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="rsvp-note">Wiadomość dla pary młodej</label>
+              <textarea id="rsvp-note" placeholder="Napisz kilka słów..."></textarea>
+            </div>
+
+            <div class="btn-row btn-row-stretch">
+              <button type="button" class="btn btn-secondary" id="rsvp-back-btn">Wróć</button>
+              <button type="submit" class="btn btn-primary">Wyślij odpowiedź</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="section section-alt" id="faq">
+    <div class="container">
+      <div class="section-header">
+        <p class="section-label">Pytania</p>
+        <h2 class="section-title">Najczęściej zadawane pytania</h2>
+      </div>
+      <div class="faq-list" id="faq-list"></div>
+    </div>
+  </section>
+
+  <!-- Stopka -->
+  <footer class="footer">
+    <p class="footer-names" id="footer-names">Anna & Michał</p>
+    <p class="footer-date" id="footer-date">12 września 2026</p>
+    <p>Do zobaczenia!</p>
+    <p style="margin-top:24px;">
+      <a href="admin.html" class="footer-admin-link">Panel pary młodej</a>
+    </p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
