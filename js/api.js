@@ -61,12 +61,18 @@ function mapSettingsFromDb(row) {
     story: row.story || '',
     accommodation: row.accommodation || '',
     gifts: row.gifts || '',
+    giftsBankAccount: row.gifts_bank_account || '',
+    giftsLink: row.gifts_link || '',
+    heroImageUrl: row.hero_image_url || 'img/hero.jpg',
+    galleryUrls: row.gallery_urls || '',
     siteUrl: row.site_url || '',
+    siteMode: row.site_mode || 'preview',
+    theme: row.theme || 'classic',
   };
 }
 
 function mapSettingsToDb(s) {
-  return {
+  const row = {
     bride_name: s.brideName,
     groom_name: s.groomName,
     wedding_date: s.weddingDate,
@@ -80,9 +86,15 @@ function mapSettingsToDb(s) {
     story: s.story,
     accommodation: s.accommodation,
     gifts: s.gifts,
+    gifts_bank_account: s.giftsBankAccount || '',
+    gifts_link: s.giftsLink || '',
+    hero_image_url: s.heroImageUrl || '',
+    gallery_urls: s.galleryUrls || '',
     site_url: s.siteUrl,
+    theme: s.theme === 'blush' ? 'blush' : 'classic',
     updated_at: new Date().toISOString(),
   };
+  return row;
 }
 
 const CloudStore = {
@@ -123,7 +135,11 @@ const CloudStore = {
   },
 
   async updateSettings(newSettings) {
-    const payload = mapSettingsToDb(newSettings);
+    const current = await this.getSettings();
+    const incoming = { ...newSettings };
+    delete incoming.siteMode;
+    const merged = { ...current, ...incoming, siteMode: current.siteMode };
+    const payload = mapSettingsToDb(merged);
     const { error } = await supabaseClient.from('wedding_settings').update(payload).eq('id', 1);
     if (error) throw error;
     return this.getSettings();
@@ -229,13 +245,108 @@ const CloudStore = {
   async getSchedule() {
     const { data, error } = await supabaseClient.from('schedule_items').select('*').order('sort_order');
     if (error) throw error;
-    return (data || []).map(r => ({ time: r.time, title: r.title, description: r.description }));
+    return (data || []).map((r, i) => normalizeScheduleItem({
+      id: r.id, time: r.time, title: r.title, description: r.description, sort_order: r.sort_order,
+    }, i));
+  },
+
+  async addScheduleItem(item) {
+    const existing = await this.getSchedule();
+    const { data, error } = await supabaseClient.from('schedule_items').insert({
+      time: item.time,
+      title: item.title,
+      description: item.description || '',
+      sort_order: item.sortOrder ?? existing.length + 1,
+    }).select().single();
+    if (error) throw error;
+    return normalizeScheduleItem(data);
+  },
+
+  async updateScheduleItem(id, updates) {
+    const db = {};
+    if (updates.time !== undefined) db.time = updates.time;
+    if (updates.title !== undefined) db.title = updates.title;
+    if (updates.description !== undefined) db.description = updates.description;
+    if (updates.sortOrder !== undefined) db.sort_order = updates.sortOrder;
+    const { data, error } = await supabaseClient.from('schedule_items').update(db).eq('id', id).select().single();
+    if (error) throw error;
+    return normalizeScheduleItem(data);
+  },
+
+  async deleteScheduleItem(id) {
+    const { error } = await supabaseClient.from('schedule_items').delete().eq('id', id);
+    if (error) throw error;
   },
 
   async getFaq() {
     const { data, error } = await supabaseClient.from('faq_items').select('*').order('sort_order');
     if (error) throw error;
-    return (data || []).map(r => ({ question: r.question, answer: r.answer }));
+    return (data || []).map((r, i) => normalizeFaqItem({
+      id: r.id, question: r.question, answer: r.answer, sort_order: r.sort_order,
+    }, i));
+  },
+
+  async addFaqItem(item) {
+    const existing = await this.getFaq();
+    const { data, error } = await supabaseClient.from('faq_items').insert({
+      question: item.question,
+      answer: item.answer,
+      sort_order: item.sortOrder ?? existing.length + 1,
+    }).select().single();
+    if (error) throw error;
+    return normalizeFaqItem(data);
+  },
+
+  async updateFaqItem(id, updates) {
+    const db = {};
+    if (updates.question !== undefined) db.question = updates.question;
+    if (updates.answer !== undefined) db.answer = updates.answer;
+    if (updates.sortOrder !== undefined) db.sort_order = updates.sortOrder;
+    const { data, error } = await supabaseClient.from('faq_items').update(db).eq('id', id).select().single();
+    if (error) throw error;
+    return normalizeFaqItem(data);
+  },
+
+  async deleteFaqItem(id) {
+    const { error } = await supabaseClient.from('faq_items').delete().eq('id', id);
+    if (error) throw error;
+  },
+
+  async getVendors() {
+    const { data, error } = await supabaseClient.from('vendors').select('*').order('name');
+    if (error) throw error;
+    return (data || []).map(normalizeVendor);
+  },
+
+  async addVendor(vendor) {
+    const { data, error } = await supabaseClient.from('vendors').insert({
+      name: vendor.name,
+      role: vendor.role || '',
+      phone: vendor.phone || null,
+      email: vendor.email || null,
+      notes: vendor.notes || '',
+      contract_date: vendor.contractDate || null,
+    }).select().single();
+    if (error) throw error;
+    return normalizeVendor(data);
+  },
+
+  async updateVendor(id, updates) {
+    const db = {};
+    if (updates.name !== undefined) db.name = updates.name;
+    if (updates.role !== undefined) db.role = updates.role;
+    if (updates.phone !== undefined) db.phone = updates.phone || null;
+    if (updates.email !== undefined) db.email = updates.email || null;
+    if (updates.notes !== undefined) db.notes = updates.notes;
+    if (updates.contractDate !== undefined) db.contract_date = updates.contractDate || null;
+    const { data, error } = await supabaseClient.from('vendors').update(db).eq('id', id).select().single();
+    if (error) throw error;
+    return normalizeVendor(data);
+  },
+
+  async deleteVendor(id) {
+    const { error } = await supabaseClient.from('vendors').delete().eq('id', id);
+    if (error) throw error;
   },
 
   async getChecklist() {
@@ -392,55 +503,24 @@ const CloudStore = {
   },
 
   async getGuestStats() {
-    const guests = await this.getGuests();
-    const confirmed = guests.filter(g => g.status === 'confirmed');
-    const declined = guests.filter(g => g.status === 'declined');
-    const pending = guests.filter(g => g.status === 'pending');
-    const invited = guests.filter(g => g.invitationSentAt);
-    return {
-      total: guests.length,
-      confirmed: confirmed.length,
-      declined: declined.length,
-      pending: pending.length,
-      totalPeople: confirmed.reduce((sum, g) => sum + g.confirmedGuests, 0),
-      invitationsSent: invited.length,
-      invitationsPending: guests.length - invited.length,
-    };
+    return computeGuestStats(() => this.getGuests());
   },
 
   async getDietSummary() {
-    return LocalStore.getDietSummary.call({ getGuests: () => this.getGuests() });
+    return computeDietSummary(() => this.getGuests());
   },
 
   async exportGuestsCSV() {
-    const guests = await this.getGuests();
-    const headers = ['Imię i nazwisko', 'Email', 'Telefon', 'Kod', 'Grupa', 'Status', 'Zaproszenie wysłane', 'Liczba osób', 'Dieta', 'Alergie', 'Wiadomość', 'Data odpowiedzi'];
-    const rows = guests.map(g => [
-      g.name, g.email, g.phone, g.code, g.group,
-      g.status === 'confirmed' ? 'Potwierdzone' : g.status === 'declined' ? 'Odmowa' : 'Oczekujące',
-      g.invitationSentAt ? new Date(g.invitationSentAt).toLocaleDateString('pl-PL') : 'Nie',
-      g.confirmedGuests, (g.diet || []).join(', '), g.allergies, g.message,
-      g.respondedAt ? new Date(g.respondedAt).toLocaleDateString('pl-PL') : '',
-    ]);
-    return [headers, ...rows]
-      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-      .join('\n');
+    return buildGuestsCSV(await this.getGuests());
+  },
+
+  async exportBudgetCSV() {
+    return buildBudgetCSV(await this.getBudgetItems());
   },
 
   async resetData() {
     throw new Error('Reset danych dostępny tylko w trybie lokalnym.');
   },
-};
-
-CloudStore.getDietSummary = async function () {
-  const guests = (await this.getGuests()).filter(g => g.status === 'confirmed');
-  const summary = { standard: 0, vegetarian: 0, vegan: 0, glutenFree: 0, kids: 0, other: 0 };
-  guests.forEach(g => {
-    const count = g.confirmedGuests || 1;
-    if (!g.diet || g.diet.length === 0) summary.standard += count;
-    else g.diet.forEach(d => { if (summary[d] !== undefined) summary[d] += count; else summary.other += count; });
-  });
-  return summary;
 };
 
 CloudStore.isAdminLoggedIn = async function () {
@@ -463,7 +543,6 @@ function isUsingCloud() {
 }
 
 async function loginAdmin(email, password) {
-  if (store.isCloud()) return store.loginAdmin(email, password);
   return store.loginAdmin(email, password);
 }
 
@@ -483,7 +562,17 @@ async function deleteGuest(id) { return store.deleteGuest(id); }
 async function markInvitationSent(id) { return store.markInvitationSent(id); }
 async function submitRsvp(c, d) { return store.submitRsvp(c, d); }
 async function getSchedule() { return store.getSchedule(); }
+async function addScheduleItem(i) { return store.addScheduleItem(i); }
+async function updateScheduleItem(id, u) { return store.updateScheduleItem(id, u); }
+async function deleteScheduleItem(id) { return store.deleteScheduleItem(id); }
 async function getFaq() { return store.getFaq(); }
+async function addFaqItem(i) { return store.addFaqItem(i); }
+async function updateFaqItem(id, u) { return store.updateFaqItem(id, u); }
+async function deleteFaqItem(id) { return store.deleteFaqItem(id); }
+async function getVendors() { return store.getVendors(); }
+async function addVendor(v) { return store.addVendor(v); }
+async function updateVendor(id, u) { return store.updateVendor(id, u); }
+async function deleteVendor(id) { return store.deleteVendor(id); }
 async function getChecklist() { return store.getChecklist(); }
 async function addChecklistItem(t) { return store.addChecklistItem(t); }
 async function toggleChecklistItem(id) { return store.toggleChecklistItem(id); }
@@ -491,6 +580,7 @@ async function deleteChecklistItem(id) { return store.deleteChecklistItem(id); }
 async function getGuestStats() { return store.getGuestStats(); }
 async function getDietSummary() { return store.getDietSummary(); }
 async function exportGuestsCSV() { return store.exportGuestsCSV(); }
+async function exportBudgetCSV() { return store.exportBudgetCSV(); }
 async function resetData() { return store.resetData(); }
 
 async function getBudgetItems() { return store.getBudgetItems(); }

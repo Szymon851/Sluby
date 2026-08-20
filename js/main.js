@@ -1,12 +1,29 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  await initApi();
-  initNavigation();
-  await renderPageContent();
-  initCountdown();
-  initFAQ();
-  initRSVP();
-  await personalizeFromInviteCode();
+  setPageLoading(true);
+  try {
+    await initApi();
+    const settings = await getSettings();
+    const mode = enforcePublicSiteMode(settings);
+    if (mode === 'locked') return;
+
+    initNavigation();
+    initFAQ();
+    initGalleryLightbox();
+    initGiftsCopy();
+    await renderPageContent();
+    initCountdown();
+    await initRSVP();
+    await personalizeFromInviteCode();
+  } finally {
+    setPageLoading(false);
+  }
 });
+
+function setPageLoading(on) {
+  document.body.classList.toggle('page-loading', on);
+  const loader = document.getElementById('page-loader');
+  if (loader) loader.hidden = !on;
+}
 
 function initNavigation() {
   const nav = document.querySelector('.nav');
@@ -30,7 +47,15 @@ async function renderPageContent() {
   const schedule = await getSchedule();
   const faq = await getFaq();
 
-  document.title = `${settings.brideName} & ${settings.groomName} — Nasz Ślub`;
+  const title = `${settings.brideName} & ${settings.groomName} — Nasz Ślub`;
+  document.title = title;
+  setMeta('og-title', title);
+  setMeta('og-description', `Zaproszenie na ślub ${settings.brideName} & ${settings.groomName} — ${formatDate(settings.weddingDate)}`);
+  setMeta('meta-description', `Zaproszenie na ślub — ${settings.brideName} & ${settings.groomName}`);
+
+  const heroUrl = settings.heroImageUrl || 'img/hero.jpg';
+  applyHeroImage(heroUrl);
+  setMeta('og-image', resolveAbsoluteUrl(heroUrl));
 
   setText('hero-bride', settings.brideName);
   setText('hero-groom', settings.groomName);
@@ -50,6 +75,10 @@ async function renderPageContent() {
   setText('contact-email', settings.contactEmail);
   setText('contact-phone', settings.contactPhone);
 
+  renderGiftsExtras(settings);
+  renderGallery(parseGalleryUrls(settings.galleryUrls));
+  applyTheme(settings.theme);
+
   const mapLink = document.getElementById('venue-map-link');
   if (mapLink && settings.venueMapUrl) mapLink.href = settings.venueMapUrl;
 
@@ -63,7 +92,121 @@ async function renderPageContent() {
   renderFAQ(faq);
 }
 
-/** Formy powitalne dla gościa pojedynczego lub pary. */
+function applyHeroImage(url) {
+  const hero = document.getElementById('hero');
+  if (!hero || !url) return;
+  hero.style.backgroundImage = `linear-gradient(180deg, rgba(61,58,54,0.35) 0%, rgba(250,247,242,0.55) 55%, var(--cream) 100%), url('${url.replace(/'/g, '%27')}')`;
+  hero.classList.add('has-photo');
+}
+
+function setMeta(id, content) {
+  const el = document.getElementById(id);
+  if (el && content) el.setAttribute(el.tagName === 'META' && el.name === 'description' ? 'content' : 'content', content);
+  if (el) el.content = content;
+}
+
+function resolveAbsoluteUrl(path) {
+  if (!path) return '';
+  if (/^https?:\/\//i.test(path)) return path;
+  try {
+    return new URL(path, window.location.href).href;
+  } catch {
+    return path;
+  }
+}
+
+function parseGalleryUrls(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.filter(Boolean);
+  return String(raw).split('\n').map(s => s.trim()).filter(Boolean);
+}
+
+function renderGiftsExtras(settings) {
+  const bankWrap = document.getElementById('gifts-bank');
+  const bankEl = document.getElementById('gifts-bank-account');
+  const linkEl = document.getElementById('gifts-link');
+
+  if (bankWrap && bankEl) {
+    if (settings.giftsBankAccount) {
+      bankWrap.hidden = false;
+      bankEl.textContent = settings.giftsBankAccount;
+    } else {
+      bankWrap.hidden = true;
+    }
+  }
+
+  if (linkEl) {
+    if (settings.giftsLink) {
+      linkEl.hidden = false;
+      linkEl.href = settings.giftsLink;
+    } else {
+      linkEl.hidden = true;
+    }
+  }
+}
+
+function initGiftsCopy() {
+  document.getElementById('gifts-copy-btn')?.addEventListener('click', async () => {
+    const text = document.getElementById('gifts-bank-account')?.textContent?.trim();
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      const btn = document.getElementById('gifts-copy-btn');
+      const prev = btn.textContent;
+      btn.textContent = 'Skopiowano';
+      setTimeout(() => { btn.textContent = prev; }, 1500);
+    } catch {
+      alert('Nie udało się skopiować. Zaznacz numer ręcznie.');
+    }
+  });
+}
+
+function renderGallery(urls) {
+  const grid = document.getElementById('gallery-grid');
+  const empty = document.getElementById('gallery-empty');
+  if (!grid) return;
+
+  if (!urls.length) {
+    grid.innerHTML = '<p class="gallery-empty" id="gallery-empty" style="color:var(--text-muted);">Zdjęcia pojawią się wkrótce.</p>';
+    return;
+  }
+
+  grid.innerHTML = urls.map((url, i) => `
+    <button type="button" class="gallery-item" data-src="${escapeHtml(url)}" aria-label="Zdjęcie ${i + 1}">
+      <img src="${escapeHtml(url)}" alt="Zdjęcie ${i + 1}" loading="lazy">
+    </button>
+  `).join('');
+
+  grid.querySelectorAll('.gallery-item').forEach(btn => {
+    btn.addEventListener('click', () => openLightbox(btn.dataset.src));
+  });
+}
+
+function initGalleryLightbox() {
+  const box = document.getElementById('lightbox');
+  document.getElementById('lightbox-close')?.addEventListener('click', closeLightbox);
+  box?.addEventListener('click', (e) => {
+    if (e.target === box) closeLightbox();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeLightbox();
+  });
+}
+
+function openLightbox(src) {
+  const box = document.getElementById('lightbox');
+  const img = document.getElementById('lightbox-img');
+  if (!box || !img) return;
+  img.src = src;
+  box.hidden = false;
+}
+
+function closeLightbox() {
+  const box = document.getElementById('lightbox');
+  if (box) box.hidden = true;
+}
+
+/** Powitanie: gość lub para. */
 function isCoupleGuestName(name) {
   return /\s+(i|&|oraz)\s+/i.test(name || '');
 }
@@ -77,6 +220,7 @@ function formatGuestWelcome(name) {
 function applyGuestPersonalization(guest) {
   const welcome = document.getElementById('hero-guest-welcome');
   const cta = document.getElementById('hero-rsvp-cta');
+  const storyIntro = document.getElementById('story-intro');
   if (!guest || !welcome) return;
 
   const couple = isCoupleGuestName(guest.name);
@@ -87,11 +231,18 @@ function applyGuestPersonalization(guest) {
 
   if (cta) cta.hidden = false;
 
+  if (storyIntro) {
+    storyIntro.hidden = false;
+    storyIntro.textContent = couple
+      ? `Cieszymy się, że będziecie z nami, ${guest.name}.`
+      : `Cieszymy się, że będziesz z nami, ${guest.name.split(' ')[0]}.`;
+  }
+
   document.body.classList.add('personalized');
   document.title = `${guest.name} — zaproszenie`;
 }
 
-/** Ładuje gościa z ?kod= i personalizuje hero + RSVP. */
+/** Personalizacja z ?kod=. */
 async function personalizeFromInviteCode() {
   const code = new URLSearchParams(window.location.search).get('kod');
   if (!code) return;
@@ -107,7 +258,7 @@ async function personalizeFromInviteCode() {
 
 function setText(id, text) {
   const el = document.getElementById(id);
-  if (el && text) el.textContent = text;
+  if (el && text != null && text !== '') el.textContent = text;
 }
 
 function formatWeddingDate(dateStr) {
@@ -123,16 +274,23 @@ function formatDate(dateStr) {
   return date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+function isRsvpDeadlinePassed(deadline) {
+  if (!deadline) return false;
+  const end = new Date(deadline);
+  end.setHours(23, 59, 59, 999);
+  return Date.now() > end.getTime();
+}
+
 function renderSchedule(schedule) {
   const container = document.getElementById('timeline');
   if (!container) return;
   container.innerHTML = schedule.map(item => `
     <div class="timeline-item">
       <div class="timeline-dot"></div>
-      <div class="timeline-time">${item.time}</div>
+      <div class="timeline-time">${escapeHtml(item.time)}</div>
       <div class="timeline-content">
         <h3>${escapeHtml(item.title)}</h3>
-        <p>${escapeHtml(item.description)}</p>
+        <p>${escapeHtml(item.description || '')}</p>
       </div>
     </div>
   `).join('');
@@ -183,11 +341,16 @@ function initCountdown() {
   });
 }
 
-function initRSVP() {
+async function initRSVP() {
   const form = document.getElementById('rsvp-form');
   if (!form) return;
 
   let currentGuest = null;
+  const settings = await getSettings();
+  const deadlinePassed = isRsvpDeadlinePassed(settings.rsvpDeadline);
+  const closedBox = document.getElementById('rsvp-closed');
+  if (closedBox) closedBox.hidden = !deadlinePassed;
+
   const stepCode = document.getElementById('rsvp-step-code');
   const stepForm = document.getElementById('rsvp-step-form');
   const codeInput = document.getElementById('rsvp-code');
@@ -201,6 +364,12 @@ function initRSVP() {
   const message = document.getElementById('rsvp-message');
 
   async function openGuestForm(guest) {
+    // Po deadline: tylko aktualizacja wcześniejszej odpowiedzi
+    if (deadlinePassed && guest.status === 'pending') {
+      showMessage(message, 'info', 'Termin RSVP minął. Skontaktuj się z parą młodą, jeśli potrzebujesz pomocy.');
+      return;
+    }
+
     currentGuest = guest;
     applyGuestPersonalization(guest);
     showStep(stepForm);
@@ -284,6 +453,11 @@ function initRSVP() {
     hideMessage(message);
     if (!currentGuest) return;
 
+    if (deadlinePassed && currentGuest.status === 'pending') {
+      showMessage(message, 'error', 'Termin RSVP minął.');
+      return;
+    }
+
     const attending = form.querySelector('input[name="attending"]:checked')?.value === 'yes';
     const guestCount = attending ? parseInt(guestCountSelect.value, 10) : 0;
     const diet = [];
@@ -315,7 +489,6 @@ function initRSVP() {
   const codeFromUrl = new URLSearchParams(window.location.search).get('kod');
   if (codeFromUrl) {
     codeInput.value = codeFromUrl;
-    // Auto-otwarcie formularza RSVP po linku z zaproszenia
     verifyBtn?.click();
   }
 }

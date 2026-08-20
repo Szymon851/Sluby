@@ -1,5 +1,4 @@
--- Rdzeń aplikacji: ustawienia, goście, RSVP, harmonogram, FAQ, checklist.
--- Kolejność instalacji od zera: reset.sql → schema.sql → budget.sql
+-- reset → schema → budget → settings_extras → vendors
 
 CREATE TABLE IF NOT EXISTS wedding_settings (
   id INT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
@@ -16,7 +15,13 @@ CREATE TABLE IF NOT EXISTS wedding_settings (
   story TEXT,
   accommodation TEXT,
   gifts TEXT,
+  gifts_bank_account TEXT DEFAULT '',
+  gifts_link TEXT DEFAULT '',
+  hero_image_url TEXT DEFAULT 'img/hero.jpg',
+  gallery_urls TEXT DEFAULT '',
   site_url TEXT,
+  site_mode TEXT DEFAULT 'preview',
+  theme TEXT DEFAULT 'classic',
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -187,7 +192,7 @@ CREATE POLICY "Admin all guests" ON guests FOR ALL TO authenticated USING (true)
 
 CREATE POLICY "No checklist for anon" ON checklist_items FOR SELECT TO anon USING (false);
 
--- Seed tylko gdy tabela pusta (unikamy duplikatów przy ponownym uruchomieniu)
+-- Seed gdy puste
 INSERT INTO schedule_items (time, title, description, sort_order)
 SELECT * FROM (VALUES
   ('15:00', 'Ceremonia', 'Ślub kościelny w kaplicy pałacowej', 1),

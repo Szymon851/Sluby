@@ -9,29 +9,35 @@ const DEFAULT_DATA = {
     venueAddress: 'ul. Stanisława Kostki Potockiego 10/16, 02-958 Warszawa',
     venueMapUrl: 'https://maps.google.com/?q=Pałac+w+Wilanowie',
     dressCode: 'Elegancki strój wieczorowy. Panowie — garnitur, panie — suknia koktajlowa lub wieczorowa.',
-    adminPassword: 'slub2026',
-    rsvpDeadline: '2026-08-01',
+    adminPassword: 'zmien-haslo',
+    rsvpDeadline: '2026-08-15',
     contactEmail: 'anna.imichal@example.com',
     contactPhone: '+48 600 123 456',
     story: 'Poznaliśmy się w 2019 roku na koncercie jazzowym. Od pierwszej rozmowy wiedzieliśmy, że to coś wyjątkowego. Po sześciu wspaniałych latach razem, Michał poprosił Annę o rękę podczas wycieczki w Bieszczady. Teraz nie możemy się doczekać, by świętować ten dzień z Wami!',
     accommodation: 'Dla gości z daleka polecamy Hotel Bellotto (5 min spacerem) oraz Apartamenty Królewskie.',
     gifts: 'Wasza obecność to dla nas największy prezent! Jeśli jednak chcecie nas obdarować, będziemy wdzięczni za datek na naszą podróż poślubną.',
+    giftsBankAccount: '',
+    giftsLink: '',
+    heroImageUrl: 'img/hero.jpg',
+    galleryUrls: '',
     siteUrl: '',
+    siteMode: 'preview',
+    theme: 'classic',
   },
   schedule: [
-    { time: '15:00', title: 'Ceremonia', description: 'Ślub kościelny w kaplicy pałacowej' },
-    { time: '16:30', title: 'Sesja zdjęciowa', description: 'W ogrodzie pałacowym' },
-    { time: '17:30', title: 'Przyjęcie', description: 'Koktajl powitalny w ogrodzie zimowym' },
-    { time: '19:00', title: 'Obiad', description: 'Uroczysta kolacja w sali balowej' },
-    { time: '21:00', title: 'Pierwszy taniec', description: 'Otwarcie parkietu' },
-    { time: '22:00', title: 'Zabawa', description: 'Do białego rana!' },
+    { id: 'sched-1', time: '15:00', title: 'Ceremonia', description: 'Ślub kościelny w kaplicy pałacowej', sortOrder: 1 },
+    { id: 'sched-2', time: '16:30', title: 'Sesja zdjęciowa', description: 'W ogrodzie pałacowym', sortOrder: 2 },
+    { id: 'sched-3', time: '17:30', title: 'Przyjęcie', description: 'Koktajl powitalny w ogrodzie zimowym', sortOrder: 3 },
+    { id: 'sched-4', time: '19:00', title: 'Obiad', description: 'Uroczysta kolacja w sali balowej', sortOrder: 4 },
+    { id: 'sched-5', time: '21:00', title: 'Pierwszy taniec', description: 'Otwarcie parkietu', sortOrder: 5 },
+    { id: 'sched-6', time: '22:00', title: 'Zabawa', description: 'Do białego rana!', sortOrder: 6 },
   ],
   faq: [
-    { question: 'Czy mogę przyjść z dzieckiem?', answer: 'Oczywiście! Prosimy jedynie o wcześniejsze zgłoszenie w RSVP, abyśmy mogli przygotować odpowiednie menu.' },
-    { question: 'Gdzie mogę zaparkować?', answer: 'Bezpłatny parking dostępny jest na terenie pałacu.' },
-    { question: 'Do kiedy muszę potwierdzić obecność?', answer: 'Prosimy o potwierdzenie do terminu podanego na stronie.' },
-    { question: 'Czy będzie opcja wegetariańska?', answer: 'Tak! W formularzu RSVP możesz zaznaczyć swoje preferencje dietetyczne.' },
-    { question: 'Jaki jest dress code?', answer: 'Elegancki strój wieczorowy. Unikaj bieli — ta kolor zarezerwowany jest dla panny młodej!' },
+    { id: 'faq-1', question: 'Czy mogę przyjść z dzieckiem?', answer: 'Oczywiście! Prosimy jedynie o wcześniejsze zgłoszenie w RSVP, abyśmy mogli przygotować odpowiednie menu.', sortOrder: 1 },
+    { id: 'faq-2', question: 'Gdzie mogę zaparkować?', answer: 'Bezpłatny parking dostępny jest na terenie pałacu.', sortOrder: 2 },
+    { id: 'faq-3', question: 'Do kiedy muszę potwierdzić obecność?', answer: 'Prosimy o potwierdzenie do terminu podanego na stronie.', sortOrder: 3 },
+    { id: 'faq-4', question: 'Czy będzie opcja wegetariańska?', answer: 'Tak! W formularzu RSVP możesz zaznaczyć swoje preferencje dietetyczne.', sortOrder: 4 },
+    { id: 'faq-5', question: 'Jaki jest dress code?', answer: 'Elegancki strój wieczorowy. Unikaj bieli — ta kolor zarezerwowany jest dla panny młodej!', sortOrder: 5 },
   ],
   guests: [],
   checklist: [
@@ -42,6 +48,7 @@ const DEFAULT_DATA = {
     { id: 'task-5', text: 'Ustalić menu z cateringiem', done: false },
   ],
   budget: [],
+  vendors: [],
 };
 
 const LOCAL_SESSION_KEY = 'naszSlub_admin';
@@ -88,12 +95,108 @@ function mergeDefaults(saved, defaults) {
   const guests = (saved.guests || []).map(normalizeGuest);
   return {
     settings: { ...defaults.settings, ...saved.settings },
-    schedule: saved.schedule?.length ? saved.schedule : defaults.schedule,
-    faq: saved.faq?.length ? saved.faq : defaults.faq,
+    schedule: (saved.schedule?.length ? saved.schedule : defaults.schedule).map(normalizeScheduleItem),
+    faq: (saved.faq?.length ? saved.faq : defaults.faq).map(normalizeFaqItem),
     guests,
     checklist: saved.checklist?.length ? saved.checklist : defaults.checklist,
     budget: (saved.budget || []).map(normalizeBudgetItem),
+    vendors: (saved.vendors || []).map(normalizeVendor),
   };
+}
+
+function normalizeScheduleItem(item, index = 0) {
+  return {
+    id: item.id || ('sched-' + index + '-' + String(item.time || '') + '-' + String(item.title || '').slice(0, 20)).replace(/\s+/g, '-'),
+    time: item.time || '',
+    title: item.title || '',
+    description: item.description || '',
+    sortOrder: item.sortOrder ?? item.sort_order ?? index + 1,
+  };
+}
+
+function normalizeFaqItem(item, index = 0) {
+  return {
+    id: item.id || ('faq-' + index + '-' + String(item.question || '').slice(0, 24)).replace(/\s+/g, '-'),
+    question: item.question || '',
+    answer: item.answer || '',
+    sortOrder: item.sortOrder ?? item.sort_order ?? index + 1,
+  };
+}
+
+function normalizeVendor(v) {
+  return {
+    id: v.id,
+    name: v.name || '',
+    role: v.role || '',
+    phone: v.phone || '',
+    email: v.email || '',
+    notes: v.notes || '',
+    contractDate: v.contractDate || v.contract_date || '',
+  };
+}
+
+/** Statystyki / dieta / CSV — wspólne dla Local i Cloud. */
+async function computeGuestStats(getGuestsFn) {
+  const guests = await getGuestsFn();
+  const confirmed = guests.filter(g => g.status === 'confirmed');
+  const declined = guests.filter(g => g.status === 'declined');
+  const pending = guests.filter(g => g.status === 'pending');
+  const invited = guests.filter(g => g.invitationSentAt);
+  return {
+    total: guests.length,
+    confirmed: confirmed.length,
+    declined: declined.length,
+    pending: pending.length,
+    totalPeople: confirmed.reduce((sum, g) => sum + g.confirmedGuests, 0),
+    invitationsSent: invited.length,
+    invitationsPending: guests.length - invited.length,
+  };
+}
+
+async function computeDietSummary(getGuestsFn) {
+  const guests = (await getGuestsFn()).filter(g => g.status === 'confirmed');
+  const summary = { standard: 0, vegetarian: 0, vegan: 0, glutenFree: 0, kids: 0, other: 0 };
+  guests.forEach(g => {
+    const count = g.confirmedGuests || 1;
+    if (!g.diet || g.diet.length === 0) summary.standard += count;
+    else g.diet.forEach(d => {
+      if (summary[d] !== undefined) summary[d] += count;
+      else summary.other += count;
+    });
+  });
+  return summary;
+}
+
+function buildGuestsCSV(guests) {
+  const headers = ['Imię i nazwisko', 'Email', 'Telefon', 'Kod', 'Grupa', 'Status', 'Zaproszenie wysłane', 'Liczba osób', 'Dieta', 'Alergie', 'Wiadomość', 'Data odpowiedzi'];
+  const rows = guests.map(g => [
+    g.name, g.email, g.phone, g.code, g.group,
+    g.status === 'confirmed' ? 'Potwierdzone' : g.status === 'declined' ? 'Odmowa' : 'Oczekujące',
+    g.invitationSentAt ? new Date(g.invitationSentAt).toLocaleDateString('pl-PL') : 'Nie',
+    g.confirmedGuests, (g.diet || []).join(', '), g.allergies, g.message,
+    g.respondedAt ? new Date(g.respondedAt).toLocaleDateString('pl-PL') : '',
+  ]);
+  return [headers, ...rows]
+    .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    .join('\n');
+}
+
+function buildBudgetCSV(items) {
+  const headers = ['Kategoria', 'Pozycja', 'Szacunek', 'Umowa', 'Zapłacono', 'Pozostało', 'Notatki', 'Raty'];
+  const rows = items.map(item => {
+    const paid = (item.payments || []).filter(p => p.isPaid).reduce((s, p) => s + Number(p.amount || 0), 0);
+    const base = Number(item.contracted) || Number(item.estimated) || 0;
+    const pays = (item.payments || []).map(p =>
+      `${p.label}: ${p.amount} (${p.isPaid ? 'zapłacone' : (p.dueDate || 'bez terminu')})`
+    ).join(' | ');
+    return [
+      item.category, item.name, item.estimated, item.contracted, paid,
+      Math.max(0, base - paid), item.notes, pays,
+    ];
+  });
+  return [headers, ...rows]
+    .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    .join('\n');
 }
 
 function normalizePayment(p) {
@@ -173,7 +276,9 @@ const LocalStore = {
 
   async updateSettings(newSettings) {
     const data = loadData();
-    data.settings = { ...data.settings, ...newSettings };
+    const incoming = { ...newSettings };
+    delete incoming.siteMode;
+    data.settings = { ...data.settings, ...incoming };
     saveData(data);
     return data.settings;
   },
@@ -254,11 +359,92 @@ const LocalStore = {
   },
 
   async getSchedule() {
-    return loadData().schedule;
+    return loadData().schedule.map(normalizeScheduleItem).sort((a, b) => a.sortOrder - b.sortOrder);
+  },
+
+  async addScheduleItem(item) {
+    const data = loadData();
+    const row = normalizeScheduleItem({
+      id: generateId('sched'),
+      ...item,
+      sortOrder: item.sortOrder ?? data.schedule.length + 1,
+    });
+    data.schedule.push(row);
+    saveData(data);
+    return row;
+  },
+
+  async updateScheduleItem(id, updates) {
+    const data = loadData();
+    const idx = data.schedule.findIndex(s => s.id === id);
+    if (idx === -1) return null;
+    data.schedule[idx] = normalizeScheduleItem({ ...data.schedule[idx], ...updates });
+    saveData(data);
+    return data.schedule[idx];
+  },
+
+  async deleteScheduleItem(id) {
+    const data = loadData();
+    data.schedule = data.schedule.filter(s => s.id !== id);
+    saveData(data);
   },
 
   async getFaq() {
-    return loadData().faq;
+    return loadData().faq.map(normalizeFaqItem).sort((a, b) => a.sortOrder - b.sortOrder);
+  },
+
+  async addFaqItem(item) {
+    const data = loadData();
+    const row = normalizeFaqItem({
+      id: generateId('faq'),
+      ...item,
+      sortOrder: item.sortOrder ?? data.faq.length + 1,
+    });
+    data.faq.push(row);
+    saveData(data);
+    return row;
+  },
+
+  async updateFaqItem(id, updates) {
+    const data = loadData();
+    const idx = data.faq.findIndex(f => f.id === id);
+    if (idx === -1) return null;
+    data.faq[idx] = normalizeFaqItem({ ...data.faq[idx], ...updates });
+    saveData(data);
+    return data.faq[idx];
+  },
+
+  async deleteFaqItem(id) {
+    const data = loadData();
+    data.faq = data.faq.filter(f => f.id !== id);
+    saveData(data);
+  },
+
+  async getVendors() {
+    return loadData().vendors.map(normalizeVendor);
+  },
+
+  async addVendor(vendor) {
+    const data = loadData();
+    const row = normalizeVendor({ id: generateId('vendor'), ...vendor });
+    data.vendors.push(row);
+    saveData(data);
+    return row;
+  },
+
+  async updateVendor(id, updates) {
+    const data = loadData();
+    const idx = data.vendors.findIndex(v => v.id === id);
+    if (idx === -1) return null;
+    data.vendors[idx] = normalizeVendor({ ...data.vendors[idx], ...updates });
+    saveData(data);
+    return data.vendors[idx];
+  },
+
+  async deleteVendor(id) {
+    const data = loadData();
+    data.vendors = data.vendors.filter(v => v.id !== id);
+    saveData(data);
   },
 
   async getChecklist() {
@@ -392,52 +578,19 @@ const LocalStore = {
   },
 
   async getGuestStats() {
-    const guests = await this.getGuests();
-    const confirmed = guests.filter(g => g.status === 'confirmed');
-    const declined = guests.filter(g => g.status === 'declined');
-    const pending = guests.filter(g => g.status === 'pending');
-    const invited = guests.filter(g => g.invitationSentAt);
-    return {
-      total: guests.length,
-      confirmed: confirmed.length,
-      declined: declined.length,
-      pending: pending.length,
-      totalPeople: confirmed.reduce((sum, g) => sum + g.confirmedGuests, 0),
-      invitationsSent: invited.length,
-      invitationsPending: guests.length - invited.length,
-    };
+    return computeGuestStats(() => this.getGuests());
   },
 
   async getDietSummary() {
-    const guests = (await this.getGuests()).filter(g => g.status === 'confirmed');
-    const summary = { standard: 0, vegetarian: 0, vegan: 0, glutenFree: 0, kids: 0, other: 0 };
-    guests.forEach(g => {
-      const count = g.confirmedGuests || 1;
-      if (!g.diet || g.diet.length === 0) {
-        summary.standard += count;
-      } else {
-        g.diet.forEach(d => {
-          if (summary[d] !== undefined) summary[d] += count;
-          else summary.other += count;
-        });
-      }
-    });
-    return summary;
+    return computeDietSummary(() => this.getGuests());
   },
 
   async exportGuestsCSV() {
-    const guests = await this.getGuests();
-    const headers = ['Imię i nazwisko', 'Email', 'Telefon', 'Kod', 'Grupa', 'Status', 'Zaproszenie wysłane', 'Liczba osób', 'Dieta', 'Alergie', 'Wiadomość', 'Data odpowiedzi'];
-    const rows = guests.map(g => [
-      g.name, g.email, g.phone, g.code, g.group,
-      g.status === 'confirmed' ? 'Potwierdzone' : g.status === 'declined' ? 'Odmowa' : 'Oczekujące',
-      g.invitationSentAt ? new Date(g.invitationSentAt).toLocaleDateString('pl-PL') : 'Nie',
-      g.confirmedGuests, (g.diet || []).join(', '), g.allergies, g.message,
-      g.respondedAt ? new Date(g.respondedAt).toLocaleDateString('pl-PL') : '',
-    ]);
-    return [headers, ...rows]
-      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-      .join('\n');
+    return buildGuestsCSV(await this.getGuests());
+  },
+
+  async exportBudgetCSV() {
+    return buildBudgetCSV(await this.getBudgetItems());
   },
 
   async resetData() {

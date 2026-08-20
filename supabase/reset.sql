@@ -1,8 +1,9 @@
--- Czyści tabele/funkcje aplikacji — potem: schema.sql → budget.sql
--- UWAGA: kasuje WSZYSTKIE dane (goście, RSVP, budżet, checklist…). Konta Auth zostają.
+-- reset → schema → budget → settings_extras → vendors
+-- Kasuje dane aplikacji. Auth zostaje.
 
 DROP TABLE IF EXISTS budget_payments CASCADE;
 DROP TABLE IF EXISTS budget_items CASCADE;
+DROP TABLE IF EXISTS vendors CASCADE;
 DROP TABLE IF EXISTS checklist_items CASCADE;
 DROP TABLE IF EXISTS guests CASCADE;
 DROP TABLE IF EXISTS faq_items CASCADE;

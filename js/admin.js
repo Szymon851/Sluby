@@ -57,6 +57,10 @@ async function showDashboard() {
   document.getElementById('login-page').style.display = 'none';
   document.getElementById('dashboard').style.display = 'block';
 
+  const settings = await getSettings();
+  const mode = enforceAdminSiteMode(settings);
+  if (mode === 'locked') return;
+
   if (!dashboardInitialized) {
     initNavigation();
     initGuestModal();
@@ -65,11 +69,23 @@ async function showDashboard() {
     initSettingsForm();
     initChecklistAdd();
     initBudgetPanel();
+    initSchedulePanel();
+    initFaqPanel();
+    initVendorPanel();
     document.getElementById('bulk-send-btn')?.addEventListener('click', startBulkSend);
     dashboardInitialized = true;
   }
 
-  await refreshAll();
+  setAdminLoading(true);
+  try {
+    await refreshAll();
+  } finally {
+    setAdminLoading(false);
+  }
+}
+
+function setAdminLoading(on) {
+  document.getElementById('dashboard')?.classList.toggle('admin-loading', on);
 }
 
 function initNavigation() {
@@ -102,16 +118,42 @@ async function renderDashboard() {
   document.getElementById('stat-invitations-pending').textContent = stats.invitationsPending;
 
   const deadline = new Date(settings.rsvpDeadline);
-  const daysLeft = Math.ceil((deadline - Date.now()) / (1000 * 60 * 60 * 24));
   const deadlineEl = document.getElementById('rsvp-deadline-info');
-  if (deadlineEl) {
-    deadlineEl.textContent = daysLeft > 0
-      ? `Do terminu RSVP pozostało ${daysLeft} dni.`
-      : 'Termin RSVP minął.';
+  if (deadlineEl && settings.rsvpDeadline) {
+    const days = Math.ceil((deadline - Date.now()) / 86400000);
+    deadlineEl.textContent = days >= 0
+      ? `Termin RSVP: ${deadline.toLocaleDateString('pl-PL')} (za ${days} dni)`
+      : `Termin RSVP minął (${deadline.toLocaleDateString('pl-PL')})`;
   }
 
+  await renderOnboarding(settings, stats);
   updateBulkSendButton(stats.invitationsPending);
   await renderRecentResponses();
+}
+
+async function renderOnboarding(settings, stats) {
+  const list = document.getElementById('onboarding-list');
+  const box = document.getElementById('onboarding-box');
+  if (!list || !box) return;
+
+  const checks = [
+    { ok: !!(settings.brideName && settings.groomName && settings.weddingDate), text: 'Imiona i data ślubu w Ustawieniach' },
+    { ok: !!(settings.heroImageUrl), text: 'Zdjęcie hero (plik w img/ lub URL)' },
+    { ok: !!(settings.siteUrl), text: 'Adres strony (siteUrl) — potrzebny do linków w zaproszeniach' },
+    { ok: !!(settings.giftsBankAccount || settings.gifts), text: 'Informacja o prezentach / koncie' },
+    { ok: stats.total > 0, text: 'Dodano pierwszego gościa' },
+    { ok: normalizeSiteMode(settings.siteMode) === 'live', text: 'Strona w trybie live (ustawia wdrażający w Supabase)' },
+  ];
+
+  const pending = checks.filter(c => !c.ok).length;
+  if (pending === 0) {
+    box.hidden = true;
+    return;
+  }
+  box.hidden = false;
+  list.innerHTML = checks.map(c =>
+    `<li class="${c.ok ? 'done' : ''}">${c.ok ? '✓' : '○'} ${c.text}</li>`
+  ).join('');
 }
 
 function updateBulkSendButton(pendingCount) {
@@ -272,7 +314,8 @@ async function renderDietSummary() {
 const SETTINGS_FIELDS = [
   'brideName', 'groomName', 'weddingDate', 'venue', 'venueAddress',
   'venueMapUrl', 'dressCode', 'rsvpDeadline', 'contactEmail', 'contactPhone',
-  'story', 'accommodation', 'gifts', 'siteUrl',
+  'story', 'accommodation', 'gifts', 'giftsBankAccount', 'giftsLink',
+  'heroImageUrl', 'galleryUrls', 'theme', 'siteUrl',
 ];
 
 function initSettingsForm() {
@@ -298,15 +341,29 @@ function initSettingsForm() {
         data[field] = val;
       }
     });
+
+    // Walidacja: RSVP przed datą ślubu
+    if (data.rsvpDeadline && data.weddingDate) {
+      const rsvp = new Date(data.rsvpDeadline);
+      const wedding = new Date(data.weddingDate);
+      if (rsvp > wedding) {
+        msg.className = 'form-message error';
+        msg.textContent = 'Termin RSVP nie może być po dacie ślubu.';
+        return;
+      }
+    }
+
     if (!isUsingCloud()) {
       const pw = form.querySelector('[name="adminPassword"]');
       if (pw?.value) data.adminPassword = pw.value;
     }
     try {
       await updateSettings(data);
+      applyTheme(data.theme);
       msg.className = 'form-message success';
       msg.textContent = 'Ustawienia zapisane!';
       setTimeout(() => { msg.className = 'form-message'; }, 3000);
+      await renderOnboarding(await getSettings(), await getGuestStats());
     } catch (err) {
       msg.className = 'form-message error';
       msg.textContent = 'Błąd zapisu: ' + err.message;
@@ -318,6 +375,8 @@ async function populateSettingsForm() {
   const settings = await getSettings();
   const form = document.getElementById('settings-form');
   if (!form) return;
+
+  applyTheme(settings.theme);
 
   SETTINGS_FIELDS.forEach(field => {
     const input = form.querySelector(`[name="${field}"]`);
@@ -433,6 +492,13 @@ async function openSendForGuest(guestId) {
 }
 
 async function startBulkSend() {
+  const settings = await getSettings();
+  if (normalizeSiteMode(settings.siteMode) === 'preview') {
+    if (!confirm('Strona jest w trybie PODGLĄDU.\nGoście zobaczą baner „demo”. Na serio wysyłać zaproszenia dopiero po trybie live.\n\nKontynuować mimo to?')) {
+      return;
+    }
+  }
+
   const guests = await getGuests();
   sendWizardQueue = getUnsentGuests(guests);
 
@@ -572,6 +638,9 @@ async function refreshAll() {
   await renderChecklist();
   await renderDietSummary();
   await renderBudget();
+  await renderScheduleAdmin();
+  await renderFaqAdmin();
+  await renderVendors();
 }
 
 function formatMoney(n) {
@@ -603,6 +672,19 @@ let budgetExpanded = new Set();
 
 function initBudgetPanel() {
   document.getElementById('budget-add-item-btn')?.addEventListener('click', () => openBudgetItemModal());
+  document.getElementById('budget-export-btn')?.addEventListener('click', async () => {
+    try {
+      const csv = await exportBudgetCSV();
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'budzet-wesela.csv';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch (err) {
+      alert('Eksport nieudany: ' + (err.message || err));
+    }
+  });
   document.getElementById('budget-seed-btn')?.addEventListener('click', async () => {
     try {
       const before = (await getBudgetItems()).length;
@@ -865,6 +947,197 @@ function renderBudgetUpcoming(items) {
       </div>
     </div>
   `).join('');
+}
+
+function initSchedulePanel() {
+  document.getElementById('schedule-add-btn')?.addEventListener('click', () => openScheduleModal());
+  document.getElementById('schedule-cancel')?.addEventListener('click', () => closeModal('schedule-modal'));
+  document.getElementById('schedule-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('schedule-edit-id').value;
+    const payload = {
+      time: document.getElementById('schedule-time').value.trim(),
+      title: document.getElementById('schedule-title').value.trim(),
+      description: document.getElementById('schedule-desc').value.trim(),
+      sortOrder: parseInt(document.getElementById('schedule-order').value, 10) || 1,
+    };
+    if (id) await updateScheduleItem(id, payload);
+    else await addScheduleItem(payload);
+    closeModal('schedule-modal');
+    await renderScheduleAdmin();
+  });
+}
+
+function openScheduleModal(item) {
+  document.getElementById('schedule-modal-title').textContent = item ? 'Edytuj pozycję' : 'Dodaj pozycję';
+  document.getElementById('schedule-edit-id').value = item?.id || '';
+  document.getElementById('schedule-time').value = item?.time || '';
+  document.getElementById('schedule-title').value = item?.title || '';
+  document.getElementById('schedule-desc').value = item?.description || '';
+  document.getElementById('schedule-order').value = item?.sortOrder ?? 1;
+  openModal('schedule-modal');
+}
+
+async function renderScheduleAdmin() {
+  const tbody = document.getElementById('schedule-table-body');
+  if (!tbody) return;
+  const items = await getSchedule();
+  tbody.innerHTML = items.length ? items.map(item => `
+    <tr>
+      <td>${escapeHtml(item.time)}</td>
+      <td><strong>${escapeHtml(item.title)}</strong></td>
+      <td>${escapeHtml(item.description || '')}</td>
+      <td>${item.sortOrder}</td>
+      <td class="actions">
+        <button type="button" class="btn btn-sm btn-secondary" data-action="edit" data-id="${item.id}">Edytuj</button>
+        <button type="button" class="btn btn-sm btn-danger" data-action="del" data-id="${item.id}">Usuń</button>
+      </td>
+    </tr>
+  `).join('') : '<tr><td colspan="5" style="color:var(--text-muted);padding:20px;">Brak pozycji.</td></tr>';
+
+  tbody.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const item = items.find(i => i.id === btn.dataset.id);
+      if (btn.dataset.action === 'edit' && item) openScheduleModal(item);
+      if (btn.dataset.action === 'del' && confirm('Usunąć tę pozycję?')) {
+        await deleteScheduleItem(btn.dataset.id);
+        await renderScheduleAdmin();
+      }
+    });
+  });
+}
+
+function initFaqPanel() {
+  document.getElementById('faq-add-btn')?.addEventListener('click', () => openFaqModal());
+  document.getElementById('faq-cancel')?.addEventListener('click', () => closeModal('faq-modal'));
+  document.getElementById('faq-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('faq-edit-id').value;
+    const payload = {
+      question: document.getElementById('faq-question').value.trim(),
+      answer: document.getElementById('faq-answer').value.trim(),
+      sortOrder: parseInt(document.getElementById('faq-order').value, 10) || 1,
+    };
+    if (id) await updateFaqItem(id, payload);
+    else await addFaqItem(payload);
+    closeModal('faq-modal');
+    await renderFaqAdmin();
+  });
+}
+
+function openFaqModal(item) {
+  document.getElementById('faq-modal-title').textContent = item ? 'Edytuj pytanie' : 'Dodaj pytanie';
+  document.getElementById('faq-edit-id').value = item?.id || '';
+  document.getElementById('faq-question').value = item?.question || '';
+  document.getElementById('faq-answer').value = item?.answer || '';
+  document.getElementById('faq-order').value = item?.sortOrder ?? 1;
+  openModal('faq-modal');
+}
+
+async function renderFaqAdmin() {
+  const tbody = document.getElementById('faq-table-body');
+  if (!tbody) return;
+  const items = await getFaq();
+  tbody.innerHTML = items.length ? items.map(item => `
+    <tr>
+      <td><strong>${escapeHtml(item.question)}</strong></td>
+      <td>${escapeHtml(item.answer)}</td>
+      <td>${item.sortOrder}</td>
+      <td class="actions">
+        <button type="button" class="btn btn-sm btn-secondary" data-action="edit" data-id="${item.id}">Edytuj</button>
+        <button type="button" class="btn btn-sm btn-danger" data-action="del" data-id="${item.id}">Usuń</button>
+      </td>
+    </tr>
+  `).join('') : '<tr><td colspan="4" style="color:var(--text-muted);padding:20px;">Brak pytań.</td></tr>';
+
+  tbody.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const item = items.find(i => i.id === btn.dataset.id);
+      if (btn.dataset.action === 'edit' && item) openFaqModal(item);
+      if (btn.dataset.action === 'del' && confirm('Usunąć to pytanie?')) {
+        await deleteFaqItem(btn.dataset.id);
+        await renderFaqAdmin();
+      }
+    });
+  });
+}
+
+function initVendorPanel() {
+  document.getElementById('vendor-add-btn')?.addEventListener('click', () => openVendorModal());
+  document.getElementById('vendor-cancel')?.addEventListener('click', () => closeModal('vendor-modal'));
+  document.getElementById('vendor-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('vendor-edit-id').value;
+    const payload = {
+      name: document.getElementById('vendor-name').value.trim(),
+      role: document.getElementById('vendor-role').value.trim(),
+      phone: document.getElementById('vendor-phone').value.trim(),
+      email: document.getElementById('vendor-email').value.trim(),
+      contractDate: document.getElementById('vendor-contract').value || '',
+      notes: document.getElementById('vendor-notes').value.trim(),
+    };
+    try {
+      if (id) await updateVendor(id, payload);
+      else await addVendor(payload);
+      closeModal('vendor-modal');
+      await renderVendors();
+    } catch (err) {
+      alert('Błąd: ' + (err.message || err) + '\nUruchom supabase/vendors.sql jeśli tabela nie istnieje.');
+    }
+  });
+}
+
+function openVendorModal(item) {
+  document.getElementById('vendor-modal-title').textContent = item ? 'Edytuj dostawcę' : 'Dodaj dostawcę';
+  document.getElementById('vendor-edit-id').value = item?.id || '';
+  document.getElementById('vendor-name').value = item?.name || '';
+  document.getElementById('vendor-role').value = item?.role || '';
+  document.getElementById('vendor-phone').value = item?.phone || '';
+  document.getElementById('vendor-email').value = item?.email || '';
+  document.getElementById('vendor-contract').value = item?.contractDate || '';
+  document.getElementById('vendor-notes').value = item?.notes || '';
+  openModal('vendor-modal');
+}
+
+async function renderVendors() {
+  const tbody = document.getElementById('vendors-table-body');
+  if (!tbody) return;
+  let items = [];
+  try {
+    items = await getVendors();
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6" style="color:var(--text-muted);padding:20px;">
+      Brak tabeli dostawców. Uruchom <code>supabase/vendors.sql</code>.
+    </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = items.length ? items.map(item => `
+    <tr>
+      <td><strong>${escapeHtml(item.name)}</strong>
+        ${item.notes ? `<div class="budget-notes">${escapeHtml(item.notes)}</div>` : ''}
+      </td>
+      <td>${escapeHtml(item.role)}</td>
+      <td>${escapeHtml(item.phone)}</td>
+      <td>${escapeHtml(item.email)}</td>
+      <td>${item.contractDate ? formatRelativeDate(item.contractDate) : '—'}</td>
+      <td class="actions">
+        <button type="button" class="btn btn-sm btn-secondary" data-action="edit" data-id="${item.id}">Edytuj</button>
+        <button type="button" class="btn btn-sm btn-danger" data-action="del" data-id="${item.id}">Usuń</button>
+      </td>
+    </tr>
+  `).join('') : '<tr><td colspan="6" style="color:var(--text-muted);padding:20px;">Brak dostawców.</td></tr>';
+
+  tbody.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const item = items.find(i => i.id === btn.dataset.id);
+      if (btn.dataset.action === 'edit' && item) openVendorModal(item);
+      if (btn.dataset.action === 'del' && confirm('Usunąć dostawcę?')) {
+        await deleteVendor(btn.dataset.id);
+        await renderVendors();
+      }
+    });
+  });
 }
 
 function statusLabel(status) {

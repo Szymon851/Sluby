@@ -52,6 +52,9 @@
           <li><button type="button" data-panel="guests">Goście</button></li>
           <li><button type="button" data-panel="diet">Dieta</button></li>
           <li><button type="button" data-panel="budget">Budżet</button></li>
+          <li><button type="button" data-panel="schedule">Harmonogram</button></li>
+          <li><button type="button" data-panel="faq">FAQ</button></li>
+          <li><button type="button" data-panel="vendors">Dostawcy</button></li>
           <li><button type="button" data-panel="checklist">Checklist</button></li>
           <li><button type="button" data-panel="settings">Ustawienia</button></li>
         </ul>
@@ -62,7 +65,12 @@
         <!-- Przegląd -->
         <div class="admin-panel active" id="panel-dashboard">
           <h2>Przegląd</h2>
-          <p id="rsvp-deadline-info" style="color:var(--text-muted);margin-bottom:24px;"></p>
+          <p id="rsvp-deadline-info" style="color:var(--text-muted);margin-bottom:16px;"></p>
+
+          <div class="info-box" id="onboarding-box">
+            <h4>Start z panelem — checklista</h4>
+            <ul id="onboarding-list" class="onboarding-list"></ul>
+          </div>
 
           <div class="stats-grid">
             <div class="stat-card">
@@ -180,6 +188,7 @@
                 <option value="">Wszystkie kategorie</option>
               </select>
               <div class="toolbar-actions">
+                <button type="button" class="btn btn-sm btn-secondary" id="budget-export-btn">Eksport CSV</button>
                 <button type="button" class="btn btn-sm btn-secondary" id="budget-seed-btn">Dodaj przykładowe</button>
                 <button type="button" class="btn btn-sm btn-primary" id="budget-add-item-btn">+ Pozycja</button>
               </div>
@@ -203,6 +212,78 @@
 
           <h3 style="font-family:var(--font-heading);margin:32px 0 16px;">Nadchodzące płatności</h3>
           <div id="budget-upcoming"></div>
+        </div>
+
+        <!-- Harmonogram -->
+        <div class="admin-panel" id="panel-schedule">
+          <h2>Harmonogram dnia</h2>
+          <p style="color:var(--text-muted);margin-bottom:24px;">Edytuj plan dnia widoczny na stronie gości.</p>
+          <div class="table-wrapper">
+            <div class="table-toolbar">
+              <span></span>
+              <button type="button" class="btn btn-sm btn-primary" id="schedule-add-btn">+ Pozycja</button>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Godzina</th>
+                  <th>Tytuł</th>
+                  <th>Opis</th>
+                  <th>Kolejność</th>
+                  <th>Akcje</th>
+                </tr>
+              </thead>
+              <tbody id="schedule-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- FAQ -->
+        <div class="admin-panel" id="panel-faq">
+          <h2>FAQ</h2>
+          <p style="color:var(--text-muted);margin-bottom:24px;">Pytania i odpowiedzi na stronie publicznej.</p>
+          <div class="table-wrapper">
+            <div class="table-toolbar">
+              <span></span>
+              <button type="button" class="btn btn-sm btn-primary" id="faq-add-btn">+ Pytanie</button>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Pytanie</th>
+                  <th>Odpowiedź</th>
+                  <th>Kolejność</th>
+                  <th>Akcje</th>
+                </tr>
+              </thead>
+              <tbody id="faq-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Dostawcy -->
+        <div class="admin-panel" id="panel-vendors">
+          <h2>Dostawcy</h2>
+          <p style="color:var(--text-muted);margin-bottom:24px;">Kontakty: fotograf, DJ, catering, sala…</p>
+          <div class="table-wrapper">
+            <div class="table-toolbar">
+              <span></span>
+              <button type="button" class="btn btn-sm btn-primary" id="vendor-add-btn">+ Dostawca</button>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Nazwa</th>
+                  <th>Rola</th>
+                  <th>Telefon</th>
+                  <th>Email</th>
+                  <th>Umowa</th>
+                  <th>Akcje</th>
+                </tr>
+              </thead>
+              <tbody id="vendors-table-body"></tbody>
+            </table>
+          </div>
         </div>
 
         <!-- Checklist -->
@@ -262,8 +343,27 @@
               <textarea name="accommodation" rows="2"></textarea>
             </div>
             <div class="form-group">
-              <label>Prezenty</label>
+              <label>Prezenty (tekst)</label>
               <textarea name="gifts" rows="2"></textarea>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Numer konta (IBAN)</label>
+                <input type="text" name="giftsBankAccount" placeholder="PL00 0000 0000 0000 0000 0000 0000">
+              </div>
+              <div class="form-group">
+                <label>Link do listy prezentów</label>
+                <input type="url" name="giftsLink" placeholder="https://…">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Zdjęcie hero (URL lub ścieżka)</label>
+              <input type="text" name="heroImageUrl" placeholder="img/hero.jpg">
+              <p class="field-hint">Wrzuć plik do folderu <code>img/</code> w repozytorium albo podaj pełny URL.</p>
+            </div>
+            <div class="form-group">
+              <label>Galeria (URL zdjęć, po jednym w linii)</label>
+              <textarea name="galleryUrls" rows="4" placeholder="img/gallery/1.jpg&#10;img/gallery/2.jpg"></textarea>
             </div>
             <div class="form-group">
               <label>Historia / opis pary</label>
@@ -280,9 +380,16 @@
               </div>
             </div>
             <div class="form-group">
+              <label>Motyw kolorystyczny</label>
+              <select name="theme">
+                <option value="classic">Klasyczny (szałwia)</option>
+                <option value="blush">Blush (cieplejszy róż)</option>
+              </select>
+            </div>
+            <div class="form-group">
               <label>Adres strony (GitHub Pages)</label>
-              <input type="url" name="siteUrl" placeholder="https://twoja-nazwa.github.io/slub/">
-              <p class="field-hint">Używany do generowania linków w zaproszeniach. Bez tego linki mogą być niepoprawne.</p>
+              <input type="url" name="siteUrl" placeholder="https://twoja-nazwa.github.io/Sluby/">
+              <p class="field-hint">Używany w linkach zaproszeń. Końcówka ze slashiem opcjonalna. Panel admina: <code>admin.html</code> (bez linku w stopce).</p>
             </div>
             <div class="form-group" id="admin-password-group">
               <label>Hasło do panelu (tryb lokalny)</label>
@@ -443,10 +550,120 @@
     </div>
   </div>
 
+  <!-- Modal harmonogramu -->
+  <div class="modal-overlay" id="schedule-modal">
+    <div class="modal">
+      <h3 id="schedule-modal-title">Dodaj pozycję</h3>
+      <form id="schedule-form">
+        <input type="hidden" id="schedule-edit-id">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="schedule-time">Godzina</label>
+            <input type="text" id="schedule-time" required placeholder="15:00">
+          </div>
+          <div class="form-group">
+            <label for="schedule-order">Kolejność</label>
+            <input type="number" id="schedule-order" min="1" value="1">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="schedule-title">Tytuł</label>
+          <input type="text" id="schedule-title" required>
+        </div>
+        <div class="form-group">
+          <label for="schedule-desc">Opis</label>
+          <textarea id="schedule-desc" rows="2"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary btn-sm" id="schedule-cancel">Anuluj</button>
+          <button type="submit" class="btn btn-primary btn-sm">Zapisz</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal FAQ -->
+  <div class="modal-overlay" id="faq-modal">
+    <div class="modal">
+      <h3 id="faq-modal-title">Dodaj pytanie</h3>
+      <form id="faq-form">
+        <input type="hidden" id="faq-edit-id">
+        <div class="form-group">
+          <label for="faq-question">Pytanie</label>
+          <input type="text" id="faq-question" required>
+        </div>
+        <div class="form-group">
+          <label for="faq-answer">Odpowiedź</label>
+          <textarea id="faq-answer" rows="3" required></textarea>
+        </div>
+        <div class="form-group">
+          <label for="faq-order">Kolejność</label>
+          <input type="number" id="faq-order" min="1" value="1">
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary btn-sm" id="faq-cancel">Anuluj</button>
+          <button type="submit" class="btn btn-primary btn-sm">Zapisz</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal dostawcy -->
+  <div class="modal-overlay" id="vendor-modal">
+    <div class="modal">
+      <h3 id="vendor-modal-title">Dodaj dostawcę</h3>
+      <form id="vendor-form">
+        <input type="hidden" id="vendor-edit-id">
+        <div class="form-group">
+          <label for="vendor-name">Nazwa *</label>
+          <input type="text" id="vendor-name" required>
+        </div>
+        <div class="form-group">
+          <label for="vendor-role">Rola</label>
+          <input type="text" id="vendor-role" list="vendor-roles-list" placeholder="np. Fotograf">
+          <datalist id="vendor-roles-list">
+            <option value="Fotograf">
+            <option value="Video">
+            <option value="DJ / Muzyka">
+            <option value="Catering">
+            <option value="Sala">
+            <option value="Kwiaty">
+            <option value="Tort">
+            <option value="Transport">
+            <option value="Inne">
+          </datalist>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="vendor-phone">Telefon</label>
+            <input type="tel" id="vendor-phone">
+          </div>
+          <div class="form-group">
+            <label for="vendor-email">Email</label>
+            <input type="email" id="vendor-email">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="vendor-contract">Data umowy</label>
+          <input type="date" id="vendor-contract">
+        </div>
+        <div class="form-group">
+          <label for="vendor-notes">Notatki</label>
+          <textarea id="vendor-notes" rows="2"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary btn-sm" id="vendor-cancel">Anuluj</button>
+          <button type="submit" class="btn btn-primary btn-sm">Zapisz</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="js/config.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/api.js"></script>
+  <script src="js/site-control.js"></script>
   <script src="js/admin.js"></script>
 </body>
 </html>

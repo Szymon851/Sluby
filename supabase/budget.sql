@@ -1,6 +1,4 @@
--- Moduł budżetu: pozycje kosztów + raty (zaliczka / rata / saldo).
--- Wymaga wcześniej uruchomionego schema.sql.
--- Bezpieczne do ponownego uruchomienia (IF NOT EXISTS + DROP POLICY IF EXISTS).
+-- Budżet (pozycje + raty). Wymaga schema.sql.
 
 CREATE TABLE IF NOT EXISTS budget_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
