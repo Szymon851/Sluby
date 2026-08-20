@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initCountdown();
   initFAQ();
   initRSVP();
+  await personalizeFromInviteCode();
 });
 
 function initNavigation() {
@@ -60,6 +61,48 @@ async function renderPageContent() {
 
   renderSchedule(schedule);
   renderFAQ(faq);
+}
+
+/** Formy powitalne dla gościa pojedynczego lub pary. */
+function isCoupleGuestName(name) {
+  return /\s+(i|&|oraz)\s+/i.test(name || '');
+}
+
+function formatGuestWelcome(name) {
+  if (!name) return '';
+  if (isCoupleGuestName(name)) return `Drodzy ${name}`;
+  return `Witaj, ${name}`;
+}
+
+function applyGuestPersonalization(guest) {
+  const welcome = document.getElementById('hero-guest-welcome');
+  const cta = document.getElementById('hero-rsvp-cta');
+  if (!guest || !welcome) return;
+
+  const couple = isCoupleGuestName(guest.name);
+  welcome.hidden = false;
+  welcome.textContent = couple
+    ? `Zaproszenie specjalnie dla Was — ${guest.name}`
+    : `Zaproszenie specjalnie dla Ciebie — ${guest.name}`;
+
+  if (cta) cta.hidden = false;
+
+  document.body.classList.add('personalized');
+  document.title = `${guest.name} — zaproszenie`;
+}
+
+/** Ładuje gościa z ?kod= i personalizuje hero + RSVP. */
+async function personalizeFromInviteCode() {
+  const code = new URLSearchParams(window.location.search).get('kod');
+  if (!code) return;
+
+  try {
+    const guest = await getGuestByCode(code.trim());
+    if (!guest) return;
+    applyGuestPersonalization(guest);
+  } catch (e) {
+    console.warn('Nie udało się wczytać zaproszenia.', e);
+  }
 }
 
 function setText(id, text) {
@@ -157,6 +200,44 @@ function initRSVP() {
   const dietSection = document.getElementById('rsvp-diet-section');
   const message = document.getElementById('rsvp-message');
 
+  async function openGuestForm(guest) {
+    currentGuest = guest;
+    applyGuestPersonalization(guest);
+    showStep(stepForm);
+    hideStep(stepCode);
+
+    guestNameEl.textContent = formatGuestWelcome(guest.name) + '!';
+    guestInfoEl.textContent = guest.status !== 'pending'
+      ? 'Już wcześniej odpowiedziałeś/aś — możesz zaktualizować swoją odpowiedź.'
+      : `Zaproszenie obejmuje maksymalnie ${guest.maxGuests} ${guest.maxGuests === 1 ? 'osobę' : 'osoby'}.`;
+
+    guestCountSelect.innerHTML = '';
+    for (let i = 1; i <= guest.maxGuests; i++) {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = i + (i === 1 ? ' osoba' : i < 5 ? ' osoby' : ' osób');
+      guestCountSelect.appendChild(opt);
+    }
+
+    if (guest.status === 'confirmed') {
+      form.querySelector('input[name="attending"][value="yes"]').checked = true;
+      attendingSection.style.display = 'block';
+      dietSection.style.display = 'block';
+    } else if (guest.status === 'declined') {
+      form.querySelector('input[name="attending"][value="no"]').checked = true;
+      attendingSection.style.display = 'none';
+      dietSection.style.display = 'none';
+    }
+
+    guestCountSelect.value = guest.confirmedGuests || 1;
+    document.getElementById('rsvp-allergies').value = guest.allergies || '';
+    document.getElementById('rsvp-song').value = guest.songRequest || '';
+    document.getElementById('rsvp-note').value = guest.message || '';
+    document.querySelectorAll('input[name="diet"]').forEach(cb => {
+      cb.checked = (guest.diet || []).includes(cb.value);
+    });
+  }
+
   verifyBtn?.addEventListener('click', async () => {
     hideMessage(message);
     const code = codeInput.value.trim();
@@ -174,41 +255,7 @@ function initRSVP() {
         showMessage(message, 'error', 'Nie znaleziono zaproszenia o podanym kodzie.');
         return;
       }
-
-      currentGuest = guest;
-      showStep(stepForm);
-      hideStep(stepCode);
-
-      guestNameEl.textContent = `Witaj, ${guest.name}!`;
-      guestInfoEl.textContent = guest.status !== 'pending'
-        ? 'Już wcześniej odpowiedziałeś/aś — możesz zaktualizować swoją odpowiedź.'
-        : `Zaproszenie obejmuje maksymalnie ${guest.maxGuests} ${guest.maxGuests === 1 ? 'osobę' : 'osoby'}.`;
-
-      guestCountSelect.innerHTML = '';
-      for (let i = 1; i <= guest.maxGuests; i++) {
-        const opt = document.createElement('option');
-        opt.value = i;
-        opt.textContent = i + (i === 1 ? ' osoba' : i < 5 ? ' osoby' : ' osób');
-        guestCountSelect.appendChild(opt);
-      }
-
-      if (guest.status === 'confirmed') {
-        form.querySelector('input[name="attending"][value="yes"]').checked = true;
-        attendingSection.style.display = 'block';
-        dietSection.style.display = 'block';
-      } else if (guest.status === 'declined') {
-        form.querySelector('input[name="attending"][value="no"]').checked = true;
-        attendingSection.style.display = 'none';
-        dietSection.style.display = 'none';
-      }
-
-      guestCountSelect.value = guest.confirmedGuests || 1;
-      document.getElementById('rsvp-allergies').value = guest.allergies || '';
-      document.getElementById('rsvp-song').value = guest.songRequest || '';
-      document.getElementById('rsvp-note').value = guest.message || '';
-      document.querySelectorAll('input[name="diet"]').forEach(cb => {
-        cb.checked = (guest.diet || []).includes(cb.value);
-      });
+      await openGuestForm(guest);
     } catch (err) {
       showMessage(message, 'error', 'Błąd połączenia. Spróbuj ponownie później.');
     } finally {
@@ -266,7 +313,11 @@ function initRSVP() {
   });
 
   const codeFromUrl = new URLSearchParams(window.location.search).get('kod');
-  if (codeFromUrl) codeInput.value = codeFromUrl;
+  if (codeFromUrl) {
+    codeInput.value = codeFromUrl;
+    // Auto-otwarcie formularza RSVP po linku z zaproszenia
+    verifyBtn?.click();
+  }
 }
 
 function showStep(el) { el?.classList.add('active'); }

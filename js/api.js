@@ -266,6 +266,131 @@ const CloudStore = {
     if (error) throw error;
   },
 
+  async getBudgetItems() {
+    const { data, error } = await supabaseClient
+      .from('budget_items')
+      .select('*, budget_payments(*)')
+      .order('sort_order');
+    if (error) throw error;
+    return (data || []).map(row => normalizeBudgetItem({
+      id: row.id,
+      category: row.category,
+      name: row.name,
+      estimated: row.estimated_cost,
+      contracted: row.contracted_cost,
+      notes: row.notes,
+      sortOrder: row.sort_order,
+      payments: (row.budget_payments || []).map(p => ({
+        id: p.id,
+        label: p.label,
+        amount: p.amount,
+        dueDate: p.due_date,
+        isPaid: p.is_paid,
+        paidAt: p.paid_at,
+        notes: p.notes,
+      })),
+    }));
+  },
+
+  async addBudgetItem(item) {
+    const existing = await this.getBudgetItems();
+    const { data, error } = await supabaseClient.from('budget_items').insert({
+      category: item.category || 'Inne',
+      name: item.name,
+      estimated_cost: item.estimated || 0,
+      contracted_cost: item.contracted || 0,
+      notes: item.notes || '',
+      sort_order: existing.length + 1,
+    }).select().single();
+    if (error) throw error;
+    return normalizeBudgetItem({
+      id: data.id,
+      category: data.category,
+      name: data.name,
+      estimated: data.estimated_cost,
+      contracted: data.contracted_cost,
+      notes: data.notes,
+      sortOrder: data.sort_order,
+      payments: [],
+    });
+  },
+
+  async updateBudgetItem(id, updates) {
+    const db = {};
+    if (updates.category !== undefined) db.category = updates.category;
+    if (updates.name !== undefined) db.name = updates.name;
+    if (updates.estimated !== undefined) db.estimated_cost = updates.estimated;
+    if (updates.contracted !== undefined) db.contracted_cost = updates.contracted;
+    if (updates.notes !== undefined) db.notes = updates.notes;
+    const { error } = await supabaseClient.from('budget_items').update(db).eq('id', id);
+    if (error) throw error;
+    const items = await this.getBudgetItems();
+    return items.find(i => i.id === id) || null;
+  },
+
+  async deleteBudgetItem(id) {
+    const { error } = await supabaseClient.from('budget_items').delete().eq('id', id);
+    if (error) throw error;
+  },
+
+  async addBudgetPayment(itemId, payment) {
+    const { data, error } = await supabaseClient.from('budget_payments').insert({
+      budget_item_id: itemId,
+      label: payment.label || 'Rata',
+      amount: payment.amount || 0,
+      due_date: payment.dueDate || null,
+      is_paid: !!payment.isPaid,
+      paid_at: payment.isPaid ? (payment.paidAt || new Date().toISOString().slice(0, 10)) : null,
+      notes: payment.notes || '',
+    }).select().single();
+    if (error) throw error;
+    return normalizePayment({
+      id: data.id,
+      label: data.label,
+      amount: data.amount,
+      dueDate: data.due_date,
+      isPaid: data.is_paid,
+      paidAt: data.paid_at,
+      notes: data.notes,
+    });
+  },
+
+  async updateBudgetPayment(itemId, paymentId, updates) {
+    const db = {};
+    if (updates.label !== undefined) db.label = updates.label;
+    if (updates.amount !== undefined) db.amount = updates.amount;
+    if (updates.dueDate !== undefined) db.due_date = updates.dueDate || null;
+    if (updates.notes !== undefined) db.notes = updates.notes;
+    if (updates.isPaid !== undefined) {
+      db.is_paid = updates.isPaid;
+      db.paid_at = updates.isPaid
+        ? (updates.paidAt || new Date().toISOString().slice(0, 10))
+        : null;
+    }
+    const { data, error } = await supabaseClient.from('budget_payments')
+      .update(db).eq('id', paymentId).eq('budget_item_id', itemId).select().single();
+    if (error) throw error;
+    return normalizePayment({
+      id: data.id,
+      label: data.label,
+      amount: data.amount,
+      dueDate: data.due_date,
+      isPaid: data.is_paid,
+      paidAt: data.paid_at,
+      notes: data.notes,
+    });
+  },
+
+  async deleteBudgetPayment(itemId, paymentId) {
+    const { error } = await supabaseClient.from('budget_payments')
+      .delete().eq('id', paymentId).eq('budget_item_id', itemId);
+    if (error) throw error;
+  },
+
+  async seedBudgetDefaults() {
+    return LocalStore.seedBudgetDefaults.call(this);
+  },
+
   async getGuestStats() {
     const guests = await this.getGuests();
     const confirmed = guests.filter(g => g.status === 'confirmed');
@@ -368,6 +493,15 @@ async function getDietSummary() { return store.getDietSummary(); }
 async function exportGuestsCSV() { return store.exportGuestsCSV(); }
 async function resetData() { return store.resetData(); }
 
+async function getBudgetItems() { return store.getBudgetItems(); }
+async function addBudgetItem(item) { return store.addBudgetItem(item); }
+async function updateBudgetItem(id, u) { return store.updateBudgetItem(id, u); }
+async function deleteBudgetItem(id) { return store.deleteBudgetItem(id); }
+async function addBudgetPayment(itemId, p) { return store.addBudgetPayment(itemId, p); }
+async function updateBudgetPayment(itemId, paymentId, u) { return store.updateBudgetPayment(itemId, paymentId, u); }
+async function deleteBudgetPayment(itemId, paymentId) { return store.deleteBudgetPayment(itemId, paymentId); }
+async function seedBudgetDefaults() { return store.seedBudgetDefaults(); }
+
 function getInviteUrl(code) {
   return resolveSiteBaseUrl().then(base =>
     (base || '') + 'index.html?kod=' + encodeURIComponent(code)
@@ -389,11 +523,15 @@ async function buildInviteMessage(guest) {
   const settings = await getSettings();
   const base = await resolveSiteBaseUrl();
   const url = (base || '') + 'index.html?kod=' + encodeURIComponent(guest.code);
-  const firstName = guest.name.split(' ')[0];
+  const couple = /\s+(i|&|oraz)\s+/i.test(guest.name || '');
+  const greeting = couple ? `Drodzy ${guest.name}!` : `Cześć ${guest.name.split(' ')[0]}!`;
+  const inviteLine = couple
+    ? `Zapraszamy Was na nasz ślub — ${settings.brideName} & ${settings.groomName}.`
+    : `Zapraszamy Cię na nasz ślub — ${settings.brideName} & ${settings.groomName}.`;
   return (
-    `Cześć ${firstName}!\n\n` +
-    `Zapraszamy Cię na nasz ślub — ${settings.brideName} & ${settings.groomName}.\n\n` +
-    `Kliknij link, aby zobaczyć szczegóły i potwierdzić obecność:\n${url}\n\n` +
+    `${greeting}\n\n` +
+    `${inviteLine}\n\n` +
+    `Kliknij link, aby zobaczyć spersonalizowane zaproszenie i potwierdzić obecność:\n${url}\n\n` +
     `Do zobaczenia!`
   );
 }

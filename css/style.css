@@ -159,6 +159,25 @@ h1, h2, h3, h4 {
   margin-top: 8px;
 }
 
+/* Powitanie gościa z linku ?kod= */
+.hero-guest-welcome {
+  font-family: var(--font-heading);
+  font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+  color: var(--sage-dark);
+  letter-spacing: 0.04em;
+  margin-bottom: 20px;
+  font-style: italic;
+}
+
+.hero-rsvp-cta {
+  display: inline-block;
+  margin-top: 28px;
+}
+
+body.personalized .hero {
+  background: linear-gradient(180deg, #F7F3EC 0%, var(--cream) 45%, var(--sage-light) 100%);
+}
+
 .hero-scroll {
   position: absolute;
   bottom: 32px;
@@ -1253,4 +1272,108 @@ tr:hover td { background: rgba(139, 154, 123, 0.04); }
   }
 
   table { min-width: 800px; }
+}
+
+/* ===== Budżet (arkusz) ===== */
+.budget-sheet .budget-table td.num,
+.budget-payments-table td.num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.budget-expand {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--text-muted);
+  padding: 4px 8px;
+}
+
+.budget-notes {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.budget-due {
+  color: var(--sage-dark);
+  font-weight: 600;
+}
+
+.budget-payments-row {
+  display: none;
+  background: var(--cream);
+}
+
+.budget-payments-row.open {
+  display: table-row;
+}
+
+.budget-payments-row > td {
+  padding: 0 16px 16px 48px;
+}
+
+.budget-payments-table {
+  width: 100%;
+  min-width: 0 !important;
+  background: var(--ivory);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.budget-payments-table th,
+.budget-payments-table td {
+  padding: 10px 12px;
+  font-size: 0.875rem;
+}
+
+.budget-empty-pays {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  padding: 12px 0;
+}
+
+.pay-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.budget-upcoming-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.budget-upcoming-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 600;
+}
+
+.budget-upcoming-row.overdue {
+  border-left: 3px solid #B56B6B;
+  padding-left: 12px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.9375rem;
+}
+
+#budget-category-filter {
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  background: var(--cream);
 }

@@ -41,6 +41,7 @@ const DEFAULT_DATA = {
     { id: 'task-4', text: 'Zamówić tort', done: false },
     { id: 'task-5', text: 'Ustalić menu z cateringiem', done: false },
   ],
+  budget: [],
 };
 
 const LOCAL_SESSION_KEY = 'naszSlub_admin';
@@ -91,6 +92,32 @@ function mergeDefaults(saved, defaults) {
     faq: saved.faq?.length ? saved.faq : defaults.faq,
     guests,
     checklist: saved.checklist?.length ? saved.checklist : defaults.checklist,
+    budget: (saved.budget || []).map(normalizeBudgetItem),
+  };
+}
+
+function normalizePayment(p) {
+  return {
+    id: p.id,
+    label: p.label || 'Rata',
+    amount: Number(p.amount) || 0,
+    dueDate: p.dueDate || p.due_date || null,
+    isPaid: !!(p.isPaid ?? p.is_paid),
+    paidAt: p.paidAt || p.paid_at || null,
+    notes: p.notes || '',
+  };
+}
+
+function normalizeBudgetItem(item) {
+  return {
+    id: item.id,
+    category: item.category || 'Inne',
+    name: item.name || '',
+    estimated: Number(item.estimated ?? item.estimated_cost) || 0,
+    contracted: Number(item.contracted ?? item.contracted_cost) || 0,
+    notes: item.notes || '',
+    sortOrder: item.sortOrder ?? item.sort_order ?? 0,
+    payments: (item.payments || []).map(normalizePayment),
   };
 }
 
@@ -260,6 +287,108 @@ const LocalStore = {
     const data = loadData();
     data.checklist = data.checklist.filter(t => t.id !== id);
     saveData(data);
+  },
+
+  async getBudgetItems() {
+    return loadData().budget.map(normalizeBudgetItem);
+  },
+
+  async addBudgetItem(item) {
+    const data = loadData();
+    const row = normalizeBudgetItem({
+      id: generateId('budget'),
+      category: item.category,
+      name: item.name,
+      estimated: item.estimated || 0,
+      contracted: item.contracted || 0,
+      notes: item.notes || '',
+      sortOrder: data.budget.length + 1,
+      payments: item.payments || [],
+    });
+    data.budget.push(row);
+    saveData(data);
+    return row;
+  },
+
+  async updateBudgetItem(id, updates) {
+    const data = loadData();
+    const idx = data.budget.findIndex(b => b.id === id);
+    if (idx === -1) return null;
+    data.budget[idx] = normalizeBudgetItem({ ...data.budget[idx], ...updates });
+    saveData(data);
+    return data.budget[idx];
+  },
+
+  async deleteBudgetItem(id) {
+    const data = loadData();
+    data.budget = data.budget.filter(b => b.id !== id);
+    saveData(data);
+  },
+
+  async addBudgetPayment(itemId, payment) {
+    const data = loadData();
+    const item = data.budget.find(b => b.id === itemId);
+    if (!item) return null;
+    if (!item.payments) item.payments = [];
+    const row = normalizePayment({
+      id: generateId('pay'),
+      label: payment.label,
+      amount: payment.amount,
+      dueDate: payment.dueDate || null,
+      isPaid: !!payment.isPaid,
+      paidAt: payment.isPaid ? (payment.paidAt || new Date().toISOString().slice(0, 10)) : null,
+      notes: payment.notes || '',
+    });
+    item.payments.push(row);
+    saveData(data);
+    return row;
+  },
+
+  async updateBudgetPayment(itemId, paymentId, updates) {
+    const data = loadData();
+    const item = data.budget.find(b => b.id === itemId);
+    if (!item) return null;
+    const idx = (item.payments || []).findIndex(p => p.id === paymentId);
+    if (idx === -1) return null;
+    const merged = { ...item.payments[idx], ...updates };
+    if (updates.isPaid === true && !merged.paidAt) {
+      merged.paidAt = new Date().toISOString().slice(0, 10);
+    }
+    if (updates.isPaid === false) merged.paidAt = null;
+    item.payments[idx] = normalizePayment(merged);
+    saveData(data);
+    return item.payments[idx];
+  },
+
+  async deleteBudgetPayment(itemId, paymentId) {
+    const data = loadData();
+    const item = data.budget.find(b => b.id === itemId);
+    if (!item) return;
+    item.payments = (item.payments || []).filter(p => p.id !== paymentId);
+    saveData(data);
+  },
+
+  async seedBudgetDefaults() {
+    if ((await this.getBudgetItems()).length > 0) return this.getBudgetItems();
+    const samples = [
+      { category: 'Sala', name: 'Wynajem sali', estimated: 15000, contracted: 15000, payments: [
+        { label: 'Zaliczka', amount: 5000, dueDate: '2026-03-01', isPaid: true },
+        { label: 'Saldo', amount: 10000, dueDate: '2026-08-15', isPaid: false },
+      ]},
+      { category: 'Catering', name: 'Menu weselne', estimated: 25000, contracted: 0, payments: [] },
+      { category: 'Fotograf', name: 'Pakiet foto + video', estimated: 8000, contracted: 7500, payments: [
+        { label: 'Zaliczka', amount: 2500, dueDate: '2026-04-01', isPaid: true },
+        { label: 'II rata', amount: 2500, dueDate: '2026-07-01', isPaid: false },
+        { label: 'Saldo', amount: 2500, dueDate: '2026-09-10', isPaid: false },
+      ]},
+      { category: 'Muzyka', name: 'DJ / zespół', estimated: 5000, contracted: 0, payments: [] },
+      { category: 'Dekoracje', name: 'Kwiaty i dekoracje', estimated: 4000, contracted: 0, payments: [] },
+    ];
+    for (const s of samples) {
+      const item = await this.addBudgetItem(s);
+      for (const p of s.payments) await this.addBudgetPayment(item.id, p);
+    }
+    return this.getBudgetItems();
   },
 
   async getGuestStats() {

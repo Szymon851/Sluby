@@ -1,3 +1,6 @@
+-- Rdzeń aplikacji: ustawienia, goście, RSVP, harmonogram, FAQ, checklist.
+-- Kolejność instalacji od zera: reset.sql → schema.sql → budget.sql
+
 CREATE TABLE IF NOT EXISTS wedding_settings (
   id INT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
   bride_name TEXT NOT NULL DEFAULT 'Anna',
@@ -153,6 +156,20 @@ ALTER TABLE faq_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE checklist_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE guests ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Public read settings" ON wedding_settings;
+DROP POLICY IF EXISTS "Public read schedule" ON schedule_items;
+DROP POLICY IF EXISTS "Public read faq" ON faq_items;
+DROP POLICY IF EXISTS "No direct guest read" ON guests;
+DROP POLICY IF EXISTS "No direct guest write" ON guests;
+DROP POLICY IF EXISTS "No direct guest update" ON guests;
+DROP POLICY IF EXISTS "No direct guest delete" ON guests;
+DROP POLICY IF EXISTS "Admin all settings" ON wedding_settings;
+DROP POLICY IF EXISTS "Admin all schedule" ON schedule_items;
+DROP POLICY IF EXISTS "Admin all faq" ON faq_items;
+DROP POLICY IF EXISTS "Admin all checklist" ON checklist_items;
+DROP POLICY IF EXISTS "Admin all guests" ON guests;
+DROP POLICY IF EXISTS "No checklist for anon" ON checklist_items;
+
 CREATE POLICY "Public read settings" ON wedding_settings FOR SELECT TO anon, authenticated USING (true);
 CREATE POLICY "Public read schedule" ON schedule_items FOR SELECT TO anon, authenticated USING (true);
 CREATE POLICY "Public read faq" ON faq_items FOR SELECT TO anon, authenticated USING (true);
@@ -170,23 +187,30 @@ CREATE POLICY "Admin all guests" ON guests FOR ALL TO authenticated USING (true)
 
 CREATE POLICY "No checklist for anon" ON checklist_items FOR SELECT TO anon USING (false);
 
-INSERT INTO schedule_items (time, title, description, sort_order) VALUES
+-- Seed tylko gdy tabela pusta (unikamy duplikatów przy ponownym uruchomieniu)
+INSERT INTO schedule_items (time, title, description, sort_order)
+SELECT * FROM (VALUES
   ('15:00', 'Ceremonia', 'Ślub kościelny w kaplicy pałacowej', 1),
   ('16:30', 'Sesja zdjęciowa', 'W ogrodzie pałacowym', 2),
   ('17:30', 'Przyjęcie', 'Koktajl powitalny w ogrodzie zimowym', 3),
   ('19:00', 'Obiad', 'Uroczysta kolacja w sali balowej', 4),
   ('21:00', 'Pierwszy taniec', 'Otwarcie parkietu', 5),
   ('22:00', 'Zabawa', 'Do białego rana!', 6)
-ON CONFLICT DO NOTHING;
+) AS v(time, title, description, sort_order)
+WHERE NOT EXISTS (SELECT 1 FROM schedule_items LIMIT 1);
 
-INSERT INTO faq_items (question, answer, sort_order) VALUES
+INSERT INTO faq_items (question, answer, sort_order)
+SELECT * FROM (VALUES
   ('Czy mogę przyjść z dzieckiem?', 'Oczywiście! Prosimy o wcześniejsze zgłoszenie w RSVP.', 1),
   ('Gdzie mogę zaparkować?', 'Bezpłatny parking na terenie obiektu.', 2),
   ('Do kiedy muszę potwierdzić obecność?', 'Prosimy o potwierdzenie do terminu podanego na stronie.', 3)
-ON CONFLICT DO NOTHING;
+) AS v(question, answer, sort_order)
+WHERE NOT EXISTS (SELECT 1 FROM faq_items LIMIT 1);
 
-INSERT INTO checklist_items (text, done, sort_order) VALUES
+INSERT INTO checklist_items (text, done, sort_order)
+SELECT * FROM (VALUES
   ('Zarezerwować salę weselną', true, 1),
   ('Wysłać zaproszenia', false, 2),
   ('Ustalić menu z cateringiem', false, 3)
-ON CONFLICT DO NOTHING;
+) AS v(text, done, sort_order)
+WHERE NOT EXISTS (SELECT 1 FROM checklist_items LIMIT 1);

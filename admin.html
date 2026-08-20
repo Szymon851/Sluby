@@ -51,6 +51,7 @@
           <li><button type="button" class="active" data-panel="dashboard">Przegląd</button></li>
           <li><button type="button" data-panel="guests">Goście</button></li>
           <li><button type="button" data-panel="diet">Dieta</button></li>
+          <li><button type="button" data-panel="budget">Budżet</button></li>
           <li><button type="button" data-panel="checklist">Checklist</button></li>
           <li><button type="button" data-panel="settings">Ustawienia</button></li>
         </ul>
@@ -147,6 +148,61 @@
 
           <h3 style="font-family:var(--font-heading);margin:32px 0 16px;">Zgłoszone alergie</h3>
           <div id="allergies-list"></div>
+        </div>
+
+        <!-- Budżet -->
+        <div class="admin-panel" id="panel-budget">
+          <h2>Budżet wesela</h2>
+          <p style="color:var(--text-muted);margin-bottom:24px;">Arkusz kosztów z ratami — każda płatność (zaliczka, rata, saldo) ma osobny wiersz.</p>
+
+          <div class="stats-grid" id="budget-stats">
+            <div class="stat-card">
+              <div class="stat-number" id="budget-stat-estimated">0 zł</div>
+              <div class="stat-label">Szacunek</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-number" id="budget-stat-contracted">0 zł</div>
+              <div class="stat-label">Umowa</div>
+            </div>
+            <div class="stat-card highlight">
+              <div class="stat-number" id="budget-stat-paid">0 zł</div>
+              <div class="stat-label">Zapłacono</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-number" id="budget-stat-remaining">0 zł</div>
+              <div class="stat-label">Do zapłaty</div>
+            </div>
+          </div>
+
+          <div class="table-wrapper budget-sheet">
+            <div class="table-toolbar">
+              <select id="budget-category-filter">
+                <option value="">Wszystkie kategorie</option>
+              </select>
+              <div class="toolbar-actions">
+                <button type="button" class="btn btn-sm btn-secondary" id="budget-seed-btn">Dodaj przykładowe</button>
+                <button type="button" class="btn btn-sm btn-primary" id="budget-add-item-btn">+ Pozycja</button>
+              </div>
+            </div>
+            <table class="budget-table">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Kategoria</th>
+                  <th>Pozycja / dostawca</th>
+                  <th>Szacunek</th>
+                  <th>Umowa</th>
+                  <th>Zapłacono</th>
+                  <th>Pozostało</th>
+                  <th>Akcje</th>
+                </tr>
+              </thead>
+              <tbody id="budget-table-body"></tbody>
+            </table>
+          </div>
+
+          <h3 style="font-family:var(--font-heading);margin:32px 0 16px;">Nadchodzące płatności</h3>
+          <div id="budget-upcoming"></div>
         </div>
 
         <!-- Checklist -->
@@ -253,7 +309,8 @@
         <input type="hidden" id="guest-edit-id">
         <div class="form-group">
           <label for="guest-name">Imię i nazwisko *</label>
-          <input type="text" id="guest-name" required>
+          <input type="text" id="guest-name" required placeholder="np. Magda Kowalska lub Anna i Piotr">
+          <p class="field-hint">Dla pary wpisz oba imiona (np. „Anna i Piotr”) — strona i zaproszenie użyją formy zbiorowej.</p>
         </div>
         <div class="form-group">
           <label for="guest-email">Email</label>
@@ -308,6 +365,81 @@
         <button type="button" class="btn btn-secondary" id="send-modal-skip">Pomiń tego gościa</button>
         <button type="button" class="btn btn-secondary btn-sm" id="send-modal-close">Anuluj</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal pozycji budżetu -->
+  <div class="modal-overlay" id="budget-item-modal">
+    <div class="modal">
+      <h3 id="budget-item-modal-title">Dodaj pozycję</h3>
+      <form id="budget-item-form">
+        <input type="hidden" id="budget-item-edit-id">
+        <div class="form-group">
+          <label for="budget-item-category">Kategoria</label>
+          <input type="text" id="budget-item-category" list="budget-categories-list" required placeholder="np. Catering">
+          <datalist id="budget-categories-list"></datalist>
+        </div>
+        <div class="form-group">
+          <label for="budget-item-name">Pozycja / dostawca</label>
+          <input type="text" id="budget-item-name" required placeholder="np. Sala Weselna Villa">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="budget-item-estimated">Szacunek (zł)</label>
+            <input type="number" id="budget-item-estimated" min="0" step="0.01" value="0">
+          </div>
+          <div class="form-group">
+            <label for="budget-item-contracted">Kwota umowy (zł)</label>
+            <input type="number" id="budget-item-contracted" min="0" step="0.01" value="0">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="budget-item-notes">Notatki</label>
+          <textarea id="budget-item-notes" rows="2"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary btn-sm" id="budget-item-cancel">Anuluj</button>
+          <button type="submit" class="btn btn-primary btn-sm">Zapisz</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal raty -->
+  <div class="modal-overlay" id="budget-payment-modal">
+    <div class="modal">
+      <h3 id="budget-payment-modal-title">Dodaj ratę</h3>
+      <form id="budget-payment-form">
+        <input type="hidden" id="budget-payment-item-id">
+        <input type="hidden" id="budget-payment-edit-id">
+        <div class="form-group">
+          <label for="budget-payment-label">Opis</label>
+          <input type="text" id="budget-payment-label" required placeholder="np. Zaliczka, II rata, Saldo">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="budget-payment-amount">Kwota (zł)</label>
+            <input type="number" id="budget-payment-amount" min="0" step="0.01" required>
+          </div>
+          <div class="form-group">
+            <label for="budget-payment-due">Termin</label>
+            <input type="date" id="budget-payment-due">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="budget-payment-paid"> Już zapłacone
+          </label>
+        </div>
+        <div class="form-group">
+          <label for="budget-payment-notes">Notatki</label>
+          <input type="text" id="budget-payment-notes" placeholder="nr potwierdzenia, metoda…">
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary btn-sm" id="budget-payment-cancel">Anuluj</button>
+          <button type="submit" class="btn btn-primary btn-sm">Zapisz</button>
+        </div>
+      </form>
     </div>
   </div>
 

@@ -64,6 +64,7 @@ async function showDashboard() {
     initExport();
     initSettingsForm();
     initChecklistAdd();
+    initBudgetPanel();
     document.getElementById('bulk-send-btn')?.addEventListener('click', startBulkSend);
     dashboardInitialized = true;
   }
@@ -570,6 +571,300 @@ async function refreshAll() {
   await renderGuestTable(document.getElementById('guest-search')?.value || '');
   await renderChecklist();
   await renderDietSummary();
+  await renderBudget();
+}
+
+function formatMoney(n) {
+  return (Number(n) || 0).toLocaleString('pl-PL', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' zł';
+}
+
+function budgetPaidTotal(item) {
+  return (item.payments || []).filter(p => p.isPaid).reduce((s, p) => s + (Number(p.amount) || 0), 0);
+}
+
+function budgetRemaining(item) {
+  const base = Number(item.contracted) || Number(item.estimated) || 0;
+  return Math.max(0, base - budgetPaidTotal(item));
+}
+
+function paymentStatusClass(p) {
+  if (p.isPaid) return 'paid';
+  if (p.dueDate && new Date(p.dueDate) < new Date(new Date().toDateString())) return 'overdue';
+  return 'pending';
+}
+
+function paymentStatusLabel(p) {
+  if (p.isPaid) return 'Zapłacone';
+  if (p.dueDate && new Date(p.dueDate) < new Date(new Date().toDateString())) return 'Po terminie';
+  return 'Oczekuje';
+}
+
+let budgetExpanded = new Set();
+
+function initBudgetPanel() {
+  document.getElementById('budget-add-item-btn')?.addEventListener('click', () => openBudgetItemModal());
+  document.getElementById('budget-seed-btn')?.addEventListener('click', async () => {
+    try {
+      const before = (await getBudgetItems()).length;
+      await seedBudgetDefaults();
+      const after = (await getBudgetItems()).length;
+      if (after === before && before > 0) {
+        alert('Przykładowe pozycje są już na liście. Dodaj nowe ręcznie.');
+      }
+      await renderBudget();
+    } catch (err) {
+      alert('Nie udało się dodać przykładów. Sprawdź, czy uruchomiłeś supabase/budget.sql.\n' + (err.message || ''));
+    }
+  });
+  document.getElementById('budget-category-filter')?.addEventListener('change', () => renderBudget());
+  document.getElementById('budget-item-cancel')?.addEventListener('click', () => closeModal('budget-item-modal'));
+  document.getElementById('budget-payment-cancel')?.addEventListener('click', () => closeModal('budget-payment-modal'));
+
+  document.getElementById('budget-item-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('budget-item-edit-id').value;
+    const payload = {
+      category: document.getElementById('budget-item-category').value.trim(),
+      name: document.getElementById('budget-item-name').value.trim(),
+      estimated: parseFloat(document.getElementById('budget-item-estimated').value) || 0,
+      contracted: parseFloat(document.getElementById('budget-item-contracted').value) || 0,
+      notes: document.getElementById('budget-item-notes').value.trim(),
+    };
+    if (id) await updateBudgetItem(id, payload);
+    else await addBudgetItem(payload);
+    closeModal('budget-item-modal');
+    await renderBudget();
+  });
+
+  document.getElementById('budget-payment-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const itemId = document.getElementById('budget-payment-item-id').value;
+    const paymentId = document.getElementById('budget-payment-edit-id').value;
+    const payload = {
+      label: document.getElementById('budget-payment-label').value.trim(),
+      amount: parseFloat(document.getElementById('budget-payment-amount').value) || 0,
+      dueDate: document.getElementById('budget-payment-due').value || null,
+      isPaid: document.getElementById('budget-payment-paid').checked,
+      notes: document.getElementById('budget-payment-notes').value.trim(),
+    };
+    if (paymentId) await updateBudgetPayment(itemId, paymentId, payload);
+    else await addBudgetPayment(itemId, payload);
+    budgetExpanded.add(itemId);
+    closeModal('budget-payment-modal');
+    await renderBudget();
+  });
+}
+
+function closeModal(id) {
+  document.getElementById(id)?.classList.remove('open');
+}
+
+function openModal(id) {
+  document.getElementById(id)?.classList.add('open');
+}
+
+function openBudgetItemModal(item) {
+  document.getElementById('budget-item-modal-title').textContent = item ? 'Edytuj pozycję' : 'Dodaj pozycję';
+  document.getElementById('budget-item-edit-id').value = item?.id || '';
+  document.getElementById('budget-item-category').value = item?.category || '';
+  document.getElementById('budget-item-name').value = item?.name || '';
+  document.getElementById('budget-item-estimated').value = item?.estimated ?? 0;
+  document.getElementById('budget-item-contracted').value = item?.contracted ?? 0;
+  document.getElementById('budget-item-notes').value = item?.notes || '';
+  openModal('budget-item-modal');
+}
+
+function openBudgetPaymentModal(itemId, payment) {
+  document.getElementById('budget-payment-modal-title').textContent = payment ? 'Edytuj ratę' : 'Dodaj ratę';
+  document.getElementById('budget-payment-item-id').value = itemId;
+  document.getElementById('budget-payment-edit-id').value = payment?.id || '';
+  document.getElementById('budget-payment-label').value = payment?.label || '';
+  document.getElementById('budget-payment-amount').value = payment?.amount ?? '';
+  document.getElementById('budget-payment-due').value = payment?.dueDate || '';
+  document.getElementById('budget-payment-paid').checked = !!payment?.isPaid;
+  document.getElementById('budget-payment-notes').value = payment?.notes || '';
+  openModal('budget-payment-modal');
+}
+
+async function renderBudget() {
+  const tbody = document.getElementById('budget-table-body');
+  if (!tbody) return;
+
+  let items = [];
+  try {
+    items = await getBudgetItems();
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="8" style="color:var(--text-muted);padding:24px;">
+      Brak tabel budżetu w bazie. Uruchom plik <code>supabase/budget.sql</code> w SQL Editorze Supabase.
+    </td></tr>`;
+    return;
+  }
+
+  const filter = document.getElementById('budget-category-filter')?.value || '';
+  const categories = [...new Set(items.map(i => i.category).filter(Boolean))].sort();
+  const filterSelect = document.getElementById('budget-category-filter');
+  if (filterSelect) {
+    const current = filterSelect.value;
+    filterSelect.innerHTML = '<option value="">Wszystkie kategorie</option>' +
+      categories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    filterSelect.value = categories.includes(current) ? current : '';
+  }
+
+  const datalist = document.getElementById('budget-categories-list');
+  if (datalist) {
+    const defaults = ['Sala', 'Catering', 'Fotograf', 'Muzyka', 'Dekoracje', 'Ubrania', 'Pierścienie', 'Transport', 'Inne'];
+    const all = [...new Set([...defaults, ...categories])];
+    datalist.innerHTML = all.map(c => `<option value="${escapeHtml(c)}">`).join('');
+  }
+
+  const visible = filter ? items.filter(i => i.category === filter) : items;
+
+  const sumEst = items.reduce((s, i) => s + (Number(i.estimated) || 0), 0);
+  const sumCon = items.reduce((s, i) => s + (Number(i.contracted) || Number(i.estimated) || 0), 0);
+  const sumPaid = items.reduce((s, i) => s + budgetPaidTotal(i), 0);
+  const sumRem = Math.max(0, sumCon - sumPaid);
+
+  setBudgetStat('budget-stat-estimated', formatMoney(sumEst));
+  setBudgetStat('budget-stat-contracted', formatMoney(sumCon));
+  setBudgetStat('budget-stat-paid', formatMoney(sumPaid));
+  setBudgetStat('budget-stat-remaining', formatMoney(sumRem));
+
+  if (!visible.length) {
+    tbody.innerHTML = `<tr><td colspan="8" style="color:var(--text-muted);padding:24px;">
+      Brak pozycji. Kliknij „+ Pozycja” lub „Dodaj przykładowe”.
+    </td></tr>`;
+  } else {
+    tbody.innerHTML = visible.map(item => {
+      const paid = budgetPaidTotal(item);
+      const rem = budgetRemaining(item);
+      const open = budgetExpanded.has(item.id);
+      const payments = (item.payments || []).slice().sort((a, b) => String(a.dueDate || '').localeCompare(String(b.dueDate || '')));
+      return `
+        <tr class="budget-row ${open ? 'expanded' : ''}" data-id="${item.id}">
+          <td><button type="button" class="budget-expand" data-action="toggle" data-id="${item.id}" aria-label="Raty">${open ? '▾' : '▸'}</button></td>
+          <td>${escapeHtml(item.category)}</td>
+          <td>
+            <strong>${escapeHtml(item.name)}</strong>
+            ${item.notes ? `<div class="budget-notes">${escapeHtml(item.notes)}</div>` : ''}
+          </td>
+          <td class="num">${formatMoney(item.estimated)}</td>
+          <td class="num">${formatMoney(item.contracted)}</td>
+          <td class="num">${formatMoney(paid)}</td>
+          <td class="num ${rem > 0 ? 'budget-due' : ''}">${formatMoney(rem)}</td>
+          <td class="actions">
+            <button type="button" class="btn btn-sm btn-secondary" data-action="add-pay" data-id="${item.id}">+ Rata</button>
+            <button type="button" class="btn btn-sm btn-secondary" data-action="edit-item" data-id="${item.id}">Edytuj</button>
+            <button type="button" class="btn btn-sm btn-danger" data-action="del-item" data-id="${item.id}">Usuń</button>
+          </td>
+        </tr>
+        <tr class="budget-payments-row ${open ? 'open' : ''}" data-parent="${item.id}">
+          <td colspan="8">
+            ${payments.length ? `
+              <table class="budget-payments-table">
+                <thead>
+                  <tr><th>Opis</th><th>Kwota</th><th>Termin</th><th>Status</th><th>Notatki</th><th></th></tr>
+                </thead>
+                <tbody>
+                  ${payments.map(p => `
+                    <tr class="pay-${paymentStatusClass(p)}">
+                      <td>${escapeHtml(p.label)}</td>
+                      <td class="num">${formatMoney(p.amount)}</td>
+                      <td>${p.dueDate ? formatRelativeDate(p.dueDate) : '—'}</td>
+                      <td>
+                        <label class="pay-check">
+                          <input type="checkbox" data-action="toggle-pay" data-item="${item.id}" data-pay="${p.id}" ${p.isPaid ? 'checked' : ''}>
+                          <span class="badge badge-${p.isPaid ? 'confirmed' : paymentStatusClass(p) === 'overdue' ? 'declined' : 'pending'}">${paymentStatusLabel(p)}</span>
+                        </label>
+                      </td>
+                      <td>${escapeHtml(p.notes || '')}</td>
+                      <td class="actions">
+                        <button type="button" class="btn btn-sm btn-secondary" data-action="edit-pay" data-item="${item.id}" data-pay="${p.id}">Edytuj</button>
+                        <button type="button" class="btn btn-sm btn-danger" data-action="del-pay" data-item="${item.id}" data-pay="${p.id}">Usuń</button>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            ` : '<p class="budget-empty-pays">Brak rat — dodaj zaliczkę, ratę lub saldo.</p>'}
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  tbody.querySelectorAll('button[data-action], input[data-action]').forEach(el => {
+    const handler = async () => {
+      const action = el.dataset.action;
+      const id = el.dataset.id;
+      const itemId = el.dataset.item;
+      const payId = el.dataset.pay;
+      const item = items.find(i => i.id === (id || itemId));
+
+      if (action === 'toggle') {
+        if (budgetExpanded.has(id)) budgetExpanded.delete(id);
+        else budgetExpanded.add(id);
+        await renderBudget();
+      }
+      if (action === 'edit-item' && item) openBudgetItemModal(item);
+      if (action === 'add-pay') openBudgetPaymentModal(id);
+      if (action === 'del-item' && confirm('Usunąć pozycję wraz z ratami?')) {
+        await deleteBudgetItem(id);
+        await renderBudget();
+      }
+      if (action === 'edit-pay' && item) {
+        const pay = (item.payments || []).find(p => p.id === payId);
+        if (pay) openBudgetPaymentModal(itemId, pay);
+      }
+      if (action === 'del-pay' && confirm('Usunąć tę ratę?')) {
+        await deleteBudgetPayment(itemId, payId);
+        await renderBudget();
+      }
+      if (action === 'toggle-pay') {
+        await updateBudgetPayment(itemId, payId, { isPaid: el.checked });
+        await renderBudget();
+      }
+    };
+    if (el.tagName === 'INPUT') el.addEventListener('change', handler);
+    else el.addEventListener('click', handler);
+  });
+
+  renderBudgetUpcoming(items);
+}
+
+function setBudgetStat(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
+function renderBudgetUpcoming(items) {
+  const container = document.getElementById('budget-upcoming');
+  if (!container) return;
+
+  const upcoming = items.flatMap(item =>
+    (item.payments || [])
+      .filter(p => !p.isPaid)
+      .map(p => ({ ...p, itemName: item.name, category: item.category }))
+  ).sort((a, b) => String(a.dueDate || '9999').localeCompare(String(b.dueDate || '9999')));
+
+  if (!upcoming.length) {
+    container.innerHTML = '<p style="color:var(--text-muted);">Brak zaplanowanych niezapłaconych rat.</p>';
+    return;
+  }
+
+  container.innerHTML = upcoming.slice(0, 12).map(p => `
+    <div class="recent-row budget-upcoming-row ${paymentStatusClass(p)}">
+      <div>
+        <strong>${escapeHtml(p.label)}</strong>
+        <span style="color:var(--text-muted);"> — ${escapeHtml(p.itemName)} (${escapeHtml(p.category)})</span>
+      </div>
+      <div class="budget-upcoming-meta">
+        <span>${formatMoney(p.amount)}</span>
+        <span class="badge badge-${paymentStatusClass(p) === 'overdue' ? 'declined' : 'pending'}">
+          ${p.dueDate ? formatRelativeDate(p.dueDate) : 'bez terminu'}
+        </span>
+      </div>
+    </div>
+  `).join('');
 }
 
 function statusLabel(status) {
