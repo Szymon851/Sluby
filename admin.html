@@ -51,6 +51,8 @@
           <li><button type="button" class="active" data-panel="dashboard">Przegląd</button></li>
           <li><button type="button" data-panel="guests">Goście</button></li>
           <li><button type="button" data-panel="diet">Dieta</button></li>
+          <li><button type="button" data-panel="songs">Piosenki</button></li>
+          <li><button type="button" data-panel="messages">Wiadomości</button></li>
           <li><button type="button" data-panel="budget">Budżet</button></li>
           <li><button type="button" data-panel="schedule">Harmonogram</button></li>
           <li><button type="button" data-panel="faq">FAQ</button></li>
@@ -156,6 +158,18 @@
 
           <h3 style="font-family:var(--font-heading);margin:32px 0 16px;">Zgłoszone alergie</h3>
           <div id="allergies-list"></div>
+        </div>
+
+        <div class="admin-panel" id="panel-songs">
+          <h2>Prośby o piosenkę</h2>
+          <p style="color:var(--text-muted);margin-bottom:24px;">Lista dla DJ-a — wykonawca, tytuł i dedykacja.</p>
+          <div id="songs-list"></div>
+        </div>
+
+        <div class="admin-panel" id="panel-messages">
+          <h2>Wiadomości od gości</h2>
+          <p style="color:var(--text-muted);margin-bottom:24px;">Wpisy z formularza RSVP.</p>
+          <div id="messages-list"></div>
         </div>
 
         <!-- Budżet -->

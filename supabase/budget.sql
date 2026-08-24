@@ -1,6 +1,7 @@
--- Budżet (pozycje + raty). Wymaga schema.sql.
+-- 4/7  reset → schema → settings_extras → budget → vendors → rsvp_people → demo_seed
+-- Budżet: pozycje i raty.
 
-CREATE TABLE IF NOT EXISTS budget_items (
+CREATE TABLE budget_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   category TEXT NOT NULL DEFAULT 'Inne',
   name TEXT NOT NULL,
@@ -11,7 +12,7 @@ CREATE TABLE IF NOT EXISTS budget_items (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS budget_payments (
+CREATE TABLE budget_payments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   budget_item_id UUID NOT NULL REFERENCES budget_items(id) ON DELETE CASCADE,
   label TEXT NOT NULL DEFAULT 'Rata',
@@ -23,18 +24,13 @@ CREATE TABLE IF NOT EXISTS budget_payments (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_budget_payments_item ON budget_payments (budget_item_id);
+CREATE INDEX idx_budget_payments_item ON budget_payments (budget_item_id);
 
 GRANT ALL ON budget_items TO authenticated;
 GRANT ALL ON budget_payments TO authenticated;
 
 ALTER TABLE budget_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE budget_payments ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Admin all budget_items" ON budget_items;
-DROP POLICY IF EXISTS "Admin all budget_payments" ON budget_payments;
-DROP POLICY IF EXISTS "No budget_items for anon" ON budget_items;
-DROP POLICY IF EXISTS "No budget_payments for anon" ON budget_payments;
 
 CREATE POLICY "Admin all budget_items" ON budget_items FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Admin all budget_payments" ON budget_payments FOR ALL TO authenticated USING (true) WITH CHECK (true);

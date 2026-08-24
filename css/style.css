@@ -597,6 +597,26 @@ body.personalized .hero {
 .rsvp-step { display: none; }
 .rsvp-step.active { display: block; }
 
+.rsvp-person-card {
+  background: var(--ivory);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px 8px;
+  margin-bottom: 14px;
+}
+
+.rsvp-person-label {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  margin-bottom: 8px;
+}
+
+.rsvp-thanks { text-align: center; margin-bottom: 20px; }
+.rsvp-thanks h3 { font-family: var(--font-heading); margin-bottom: 8px; }
+.rsvp-edit-hint { color: var(--text-muted); font-size: 0.9375rem; margin-top: 12px; }
+
+#rsvp-step-thanks .btn { display: block; margin: 0 auto; }
+
 /* ===== FAQ ===== */
 .faq-list {
   max-width: 680px;
@@ -1087,6 +1107,31 @@ tr:hover td { background: rgba(139, 154, 123, 0.04); }
   padding: 20px;
   text-align: center;
 }
+
+.diet-card summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.diet-card summary::-webkit-details-marker { display: none; }
+
+.diet-names {
+  text-align: left;
+  margin: 12px 0 0;
+  padding-left: 18px;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.message-card {
+  background: var(--ivory);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  margin-bottom: 12px;
+}
+
+.message-card p { margin: 8px 0 0; }
 
 .diet-card .diet-count {
   font-family: var(--font-heading);

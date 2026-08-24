@@ -1,6 +1,7 @@
--- reset → schema → budget → settings_extras → vendors
+-- 2/7  reset → schema → settings_extras → budget → vendors → rsvp_people → demo_seed
+-- Rdzeń: ustawienia, plan dnia, FAQ, checklista, zaproszenia (gość = jeden rekord).
 
-CREATE TABLE IF NOT EXISTS wedding_settings (
+CREATE TABLE wedding_settings (
   id INT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
   bride_name TEXT NOT NULL DEFAULT 'Anna',
   groom_name TEXT NOT NULL DEFAULT 'Michał',
@@ -15,20 +16,13 @@ CREATE TABLE IF NOT EXISTS wedding_settings (
   story TEXT,
   accommodation TEXT,
   gifts TEXT,
-  gifts_bank_account TEXT DEFAULT '',
-  gifts_link TEXT DEFAULT '',
-  hero_image_url TEXT DEFAULT 'img/hero.jpg',
-  gallery_urls TEXT DEFAULT '',
   site_url TEXT,
-  site_mode TEXT DEFAULT 'preview',
-  theme TEXT DEFAULT 'classic',
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-INSERT INTO wedding_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
+INSERT INTO wedding_settings (id) VALUES (1);
 
--- Harmonogram
-CREATE TABLE IF NOT EXISTS schedule_items (
+CREATE TABLE schedule_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   time TEXT NOT NULL,
   title TEXT NOT NULL,
@@ -36,23 +30,21 @@ CREATE TABLE IF NOT EXISTS schedule_items (
   sort_order INT NOT NULL DEFAULT 0
 );
 
--- FAQ
-CREATE TABLE IF NOT EXISTS faq_items (
+CREATE TABLE faq_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   question TEXT NOT NULL,
   answer TEXT NOT NULL,
   sort_order INT NOT NULL DEFAULT 0
 );
 
-CREATE TABLE IF NOT EXISTS checklist_items (
+CREATE TABLE checklist_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   text TEXT NOT NULL,
   done BOOLEAN NOT NULL DEFAULT FALSE,
   sort_order INT NOT NULL DEFAULT 0
 );
 
--- Goście
-CREATE TABLE IF NOT EXISTS guests (
+CREATE TABLE guests (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   email TEXT,
@@ -71,7 +63,7 @@ CREATE TABLE IF NOT EXISTS guests (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_guests_invite_code ON guests (UPPER(invite_code));
+CREATE INDEX idx_guests_invite_code ON guests (UPPER(invite_code));
 
 CREATE OR REPLACE FUNCTION get_guest_by_code(p_code TEXT)
 RETURNS JSON
@@ -84,7 +76,6 @@ DECLARE
 BEGIN
   SELECT * INTO g FROM guests WHERE UPPER(invite_code) = UPPER(TRIM(p_code));
   IF NOT FOUND THEN RETURN NULL; END IF;
-
   RETURN json_build_object(
     'id', g.id,
     'name', g.name,
@@ -122,7 +113,7 @@ BEGIN
     RETURN json_build_object('success', false, 'error', 'Nieprawidłowy kod zaproszenia.');
   END IF;
 
-  IF p_attending AND (p_guest_count < 1 OR p_guest_count > g.max_guests) THEN
+  IF p_attending AND (p_guest_count IS NULL OR p_guest_count < 1 OR p_guest_count > g.max_guests) THEN
     RETURN json_build_object('success', false, 'error', 'Nieprawidłowa liczba osób.');
   END IF;
 
@@ -140,9 +131,6 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION get_guest_by_code(TEXT) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION submit_rsvp(TEXT, BOOLEAN, INT, TEXT[], TEXT, TEXT, TEXT) TO anon, authenticated;
-
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
 
 GRANT SELECT ON wedding_settings TO anon, authenticated;
@@ -155,25 +143,14 @@ GRANT ALL ON faq_items TO authenticated;
 GRANT ALL ON checklist_items TO authenticated;
 GRANT ALL ON guests TO authenticated;
 
+GRANT EXECUTE ON FUNCTION get_guest_by_code(TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION submit_rsvp(TEXT, BOOLEAN, INT, TEXT[], TEXT, TEXT, TEXT) TO anon, authenticated;
+
 ALTER TABLE wedding_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE schedule_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE faq_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE checklist_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE guests ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Public read settings" ON wedding_settings;
-DROP POLICY IF EXISTS "Public read schedule" ON schedule_items;
-DROP POLICY IF EXISTS "Public read faq" ON faq_items;
-DROP POLICY IF EXISTS "No direct guest read" ON guests;
-DROP POLICY IF EXISTS "No direct guest write" ON guests;
-DROP POLICY IF EXISTS "No direct guest update" ON guests;
-DROP POLICY IF EXISTS "No direct guest delete" ON guests;
-DROP POLICY IF EXISTS "Admin all settings" ON wedding_settings;
-DROP POLICY IF EXISTS "Admin all schedule" ON schedule_items;
-DROP POLICY IF EXISTS "Admin all faq" ON faq_items;
-DROP POLICY IF EXISTS "Admin all checklist" ON checklist_items;
-DROP POLICY IF EXISTS "Admin all guests" ON guests;
-DROP POLICY IF EXISTS "No checklist for anon" ON checklist_items;
 
 CREATE POLICY "Public read settings" ON wedding_settings FOR SELECT TO anon, authenticated USING (true);
 CREATE POLICY "Public read schedule" ON schedule_items FOR SELECT TO anon, authenticated USING (true);
@@ -191,31 +168,3 @@ CREATE POLICY "Admin all checklist" ON checklist_items FOR ALL TO authenticated 
 CREATE POLICY "Admin all guests" ON guests FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 CREATE POLICY "No checklist for anon" ON checklist_items FOR SELECT TO anon USING (false);
-
--- Seed gdy puste
-INSERT INTO schedule_items (time, title, description, sort_order)
-SELECT * FROM (VALUES
-  ('15:00', 'Ceremonia', 'Ślub kościelny w kaplicy pałacowej', 1),
-  ('16:30', 'Sesja zdjęciowa', 'W ogrodzie pałacowym', 2),
-  ('17:30', 'Przyjęcie', 'Koktajl powitalny w ogrodzie zimowym', 3),
-  ('19:00', 'Obiad', 'Uroczysta kolacja w sali balowej', 4),
-  ('21:00', 'Pierwszy taniec', 'Otwarcie parkietu', 5),
-  ('22:00', 'Zabawa', 'Do białego rana!', 6)
-) AS v(time, title, description, sort_order)
-WHERE NOT EXISTS (SELECT 1 FROM schedule_items LIMIT 1);
-
-INSERT INTO faq_items (question, answer, sort_order)
-SELECT * FROM (VALUES
-  ('Czy mogę przyjść z dzieckiem?', 'Oczywiście! Prosimy o wcześniejsze zgłoszenie w RSVP.', 1),
-  ('Gdzie mogę zaparkować?', 'Bezpłatny parking na terenie obiektu.', 2),
-  ('Do kiedy muszę potwierdzić obecność?', 'Prosimy o potwierdzenie do terminu podanego na stronie.', 3)
-) AS v(question, answer, sort_order)
-WHERE NOT EXISTS (SELECT 1 FROM faq_items LIMIT 1);
-
-INSERT INTO checklist_items (text, done, sort_order)
-SELECT * FROM (VALUES
-  ('Zarezerwować salę weselną', true, 1),
-  ('Wysłać zaproszenia', false, 2),
-  ('Ustalić menu z cateringiem', false, 3)
-) AS v(text, done, sort_order)
-WHERE NOT EXISTS (SELECT 1 FROM checklist_items LIMIT 1);

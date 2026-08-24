@@ -182,11 +182,10 @@
       <div class="rsvp-form-wrapper">
         <div id="rsvp-closed" class="info-box" hidden>
           <h4>Termin RSVP minął</h4>
-          <p>Oficjalny termin potwierdzeń już się skończył. Jeśli masz osobisty kod, możesz nadal zaktualizować wcześniejszą odpowiedź.</p>
+          <p>Oficjalny termin potwierdzeń już się skończył. Jeśli masz osobisty kod i wcześniej odpowiedziałaś/eś, możesz zobaczyć swoją odpowiedź.</p>
         </div>
         <div id="rsvp-message" class="form-message"></div>
 
-        <!-- Krok 1: Kod -->
         <div class="rsvp-step active" id="rsvp-step-code">
           <div class="form-group">
             <label for="rsvp-code">Kod zaproszenia</label>
@@ -196,7 +195,11 @@
           <button type="button" class="btn btn-primary btn-block" id="rsvp-verify-btn">Sprawdź kod</button>
         </div>
 
-        <!-- Krok 2: Formularz -->
+        <div class="rsvp-step" id="rsvp-step-thanks">
+          <div class="rsvp-thanks" id="rsvp-thanks-body"></div>
+          <button type="button" class="btn btn-secondary" id="rsvp-edit-btn" hidden>Edytuj odpowiedź</button>
+        </div>
+
         <div class="rsvp-step" id="rsvp-step-form">
           <h3 id="rsvp-guest-name" style="margin-bottom:8px;font-family:var(--font-heading);"></h3>
           <p id="rsvp-guest-info" style="color:var(--text-muted);font-size:0.9375rem;margin-bottom:24px;"></p>
@@ -216,38 +219,18 @@
 
             <div id="rsvp-attending-section">
               <div class="form-group">
-                <label for="rsvp-guest-count">Liczba osób (w tym Ty)</label>
+                <label for="rsvp-guest-count">Ile osób przyjdzie (w tym Ty)?</label>
                 <select id="rsvp-guest-count"></select>
               </div>
-            </div>
+              <div id="rsvp-people-list"></div>
 
-            <div id="rsvp-diet-section">
               <div class="form-group">
-                <label>Preferencje dietetyczne</label>
-                <div class="checkbox-group">
-                  <label class="checkbox-item">
-                    <input type="checkbox" name="diet" value="vegetarian"> Wegetariańskie
-                  </label>
-                  <label class="checkbox-item">
-                    <input type="checkbox" name="diet" value="vegan"> Wegańskie
-                  </label>
-                  <label class="checkbox-item">
-                    <input type="checkbox" name="diet" value="glutenFree"> Bezglutenowe
-                  </label>
-                  <label class="checkbox-item">
-                    <input type="checkbox" name="diet" value="kids"> Menu dla dziecka
-                  </label>
+                <label>Prośba o piosenkę (opcjonalnie)</label>
+                <div class="form-row">
+                  <input type="text" id="rsvp-song-artist" placeholder="Wykonawca">
+                  <input type="text" id="rsvp-song-title" placeholder="Tytuł">
                 </div>
-              </div>
-
-              <div class="form-group">
-                <label for="rsvp-allergies">Alergie i nietolerancje</label>
-                <input type="text" id="rsvp-allergies" placeholder="np. orzechy, laktoza...">
-              </div>
-
-              <div class="form-group">
-                <label for="rsvp-song">Prośba o piosenkę</label>
-                <input type="text" id="rsvp-song" placeholder="Jaki utwór chcesz usłyszeć na parkiecie?">
+                <input type="text" id="rsvp-song-dedication" placeholder="Dedykacja (dla kogo)" style="margin-top:8px;">
               </div>
             </div>
 

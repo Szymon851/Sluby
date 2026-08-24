@@ -1,6 +1,7 @@
--- Dostawcy. Wymaga schema.sql.
+-- 5/7  reset → schema → settings_extras → budget → vendors → rsvp_people → demo_seed
+-- Dostawcy.
 
-CREATE TABLE IF NOT EXISTS vendors (
+CREATE TABLE vendors (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   role TEXT DEFAULT '',
@@ -14,9 +15,6 @@ CREATE TABLE IF NOT EXISTS vendors (
 GRANT ALL ON vendors TO authenticated;
 
 ALTER TABLE vendors ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Admin all vendors" ON vendors;
-DROP POLICY IF EXISTS "No vendors for anon" ON vendors;
 
 CREATE POLICY "Admin all vendors" ON vendors FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "No vendors for anon" ON vendors FOR SELECT TO anon USING (false);

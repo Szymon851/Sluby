@@ -211,7 +211,7 @@ async function renderGuestTable(filter = '') {
       <td><code class="code-tag">${escapeHtml(g.code)}</code></td>
       <td>${invitationBadge(g)}</td>
       <td><span class="badge badge-${g.status}">${statusLabel(g.status)}</span></td>
-      <td>${g.status === 'confirmed' ? g.confirmedGuests : '—'}</td>
+      <td>${g.status === 'confirmed' ? attendingCount(g) : '—'}</td>
       <td class="table-actions">
         <button type="button" data-action="send" data-id="${g.id}">Wyślij</button>
         <button type="button" data-action="edit" data-id="${g.id}">Edytuj</button>
@@ -278,37 +278,72 @@ function initChecklistAdd() {
   });
 }
 
+function dietLabel(key) {
+  return {
+    standard: 'Standardowe', vegetarian: 'Wegetariańskie', vegan: 'Wegańskie',
+    glutenFree: 'Bezglutenowe', kids: 'Menu dla dziecka', other: 'Inne',
+  }[key] || key;
+}
+
 async function renderDietSummary() {
   const summary = await getDietSummary();
-  const labels = {
-    standard: 'Standardowe', vegetarian: 'Wegetariańskie', vegan: 'Wegańskie',
-    glutenFree: 'Bezglutenowe', kids: 'Menu dla dzieci', other: 'Inne',
-  };
+  const guests = await getGuests();
+  const peopleRows = flattenPeople(guests.filter(g => g.status === 'confirmed'));
 
   const container = document.getElementById('diet-summary');
-  if (!container) return;
-
-  container.innerHTML = Object.entries(summary)
-    .filter(([, count]) => count > 0)
-    .map(([key, count]) => `
-      <div class="diet-card">
-        <div class="diet-count">${count}</div>
-        <div class="diet-name">${labels[key] || key}</div>
-      </div>
-    `).join('') || '<p style="color:var(--text-muted);">Brak potwierdzonych gości z informacją o diecie.</p>';
+  if (container) {
+    container.innerHTML = Object.entries(summary)
+      .filter(([, v]) => v.count > 0)
+      .map(([key, v]) => `
+        <details class="diet-card">
+          <summary>
+            <div class="diet-count">${v.count}</div>
+            <div class="diet-name">${dietLabel(key)}</div>
+          </summary>
+          <ul class="diet-names">${v.names.map(n => `<li>${escapeHtml(n)}</li>`).join('')}</ul>
+        </details>
+      `).join('') || '<p style="color:var(--text-muted);">Brak potwierdzonych gości z informacją o diecie.</p>';
+  }
 
   const allergiesContainer = document.getElementById('allergies-list');
   if (allergiesContainer) {
-    const withAllergies = (await getGuests()).filter(g => g.status === 'confirmed' && g.allergies);
+    const withAllergies = peopleRows.filter(({ person }) => person.allergies);
     allergiesContainer.innerHTML = withAllergies.length
-      ? withAllergies.map(g => `
+      ? withAllergies.map(({ person }) => `
           <div class="recent-row">
-            <strong>${escapeHtml(g.name)}</strong>
-            <span style="color:var(--text-muted);"> — ${escapeHtml(g.allergies)}</span>
+            <strong>${escapeHtml(person.name)}</strong>
+            <span style="color:var(--text-muted);"> — ${escapeHtml(person.allergies)}</span>
           </div>
         `).join('')
       : '<p style="color:var(--text-muted);">Brak zgłoszonych alergii.</p>';
   }
+}
+
+async function renderSongsList() {
+  const el = document.getElementById('songs-list');
+  if (!el) return;
+  const songs = (await getGuests()).filter(g => g.songTitle || g.songArtist);
+  el.innerHTML = songs.length
+    ? songs.map(g => {
+        const track = [g.songArtist, g.songTitle].filter(Boolean).join(' — ');
+        const ded = g.songDedication ? ` <span style="color:var(--text-muted);">(${escapeHtml(g.songDedication)})</span>` : '';
+        return `<div class="recent-row"><strong>${escapeHtml(g.name)}</strong><span> — ${escapeHtml(track)}${ded}</span></div>`;
+      }).join('')
+    : '<p style="color:var(--text-muted);">Brak próśb o piosenkę.</p>';
+}
+
+async function renderMessagesList() {
+  const el = document.getElementById('messages-list');
+  if (!el) return;
+  const msgs = (await getGuests()).filter(g => g.message);
+  el.innerHTML = msgs.length
+    ? msgs.map(g => `
+        <div class="message-card">
+          <strong>${escapeHtml(g.name)}</strong>
+          <p>${escapeHtml(g.message)}</p>
+        </div>
+      `).join('')
+    : '<p style="color:var(--text-muted);">Brak wiadomości.</p>';
 }
 
 const SETTINGS_FIELDS = [
@@ -637,6 +672,8 @@ async function refreshAll() {
   await renderGuestTable(document.getElementById('guest-search')?.value || '');
   await renderChecklist();
   await renderDietSummary();
+  await renderSongsList();
+  await renderMessagesList();
   await renderBudget();
   await renderScheduleAdmin();
   await renderFaqAdmin();

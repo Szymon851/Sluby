@@ -147,35 +147,62 @@ async function computeGuestStats(getGuestsFn) {
     confirmed: confirmed.length,
     declined: declined.length,
     pending: pending.length,
-    totalPeople: confirmed.reduce((sum, g) => sum + g.confirmedGuests, 0),
+    totalPeople: confirmed.reduce((sum, g) => sum + attendingCount(g), 0),
     invitationsSent: invited.length,
     invitationsPending: guests.length - invited.length,
   };
 }
 
+function attendingCount(g) {
+  const people = (g.people || []).filter(p => p.attending);
+  if (people.length) return people.length;
+  return g.confirmedGuests || 0;
+}
+
+function flattenPeople(guests) {
+  const rows = [];
+  guests.forEach(g => {
+    const people = (g.people || []).filter(p => p.attending);
+    if (people.length) {
+      people.forEach(p => rows.push({ guest: g, person: p }));
+    } else if (g.status === 'confirmed') {
+      rows.push({ guest: g, person: { name: g.name, diet: (g.diet && g.diet[0]) || '', allergies: g.allergies || '' } });
+    }
+  });
+  return rows;
+}
+
 async function computeDietSummary(getGuestsFn) {
   const guests = (await getGuestsFn()).filter(g => g.status === 'confirmed');
-  const summary = { standard: 0, vegetarian: 0, vegan: 0, glutenFree: 0, kids: 0, other: 0 };
-  guests.forEach(g => {
-    const count = g.confirmedGuests || 1;
-    if (!g.diet || g.diet.length === 0) summary.standard += count;
-    else g.diet.forEach(d => {
-      if (summary[d] !== undefined) summary[d] += count;
-      else summary.other += count;
-    });
+  const labels = ['standard', 'vegetarian', 'vegan', 'glutenFree', 'kids', 'other'];
+  const summary = {};
+  labels.forEach(k => { summary[k] = { count: 0, names: [] }; });
+
+  flattenPeople(guests).forEach(({ person }) => {
+    const key = person.diet && summary[person.diet] ? person.diet : (person.diet ? 'other' : 'standard');
+    summary[key].count += 1;
+    summary[key].names.push(person.name || '—');
   });
   return summary;
 }
 
 function buildGuestsCSV(guests) {
-  const headers = ['Imię i nazwisko', 'Email', 'Telefon', 'Kod', 'Grupa', 'Status', 'Zaproszenie wysłane', 'Liczba osób', 'Dieta', 'Alergie', 'Wiadomość', 'Data odpowiedzi'];
-  const rows = guests.map(g => [
-    g.name, g.email, g.phone, g.code, g.group,
-    g.status === 'confirmed' ? 'Potwierdzone' : g.status === 'declined' ? 'Odmowa' : 'Oczekujące',
-    g.invitationSentAt ? new Date(g.invitationSentAt).toLocaleDateString('pl-PL') : 'Nie',
-    g.confirmedGuests, (g.diet || []).join(', '), g.allergies, g.message,
-    g.respondedAt ? new Date(g.respondedAt).toLocaleDateString('pl-PL') : '',
-  ]);
+  const headers = ['Zaproszenie', 'Osoba', 'Email', 'Telefon', 'Kod', 'Grupa', 'Status', 'Zaproszenie wysłane', 'Dieta', 'Alergie', 'Wiadomość', 'Piosenka', 'Data odpowiedzi'];
+  const rows = [];
+  guests.forEach(g => {
+    const people = (g.people || []).filter(p => p.attending);
+    const song = [g.songArtist, g.songTitle].filter(Boolean).join(' — ');
+    const status = g.status === 'confirmed' ? 'Potwierdzone' : g.status === 'declined' ? 'Odmowa' : 'Oczekujące';
+    const sent = g.invitationSentAt ? new Date(g.invitationSentAt).toLocaleDateString('pl-PL') : 'Nie';
+    const responded = g.respondedAt ? new Date(g.respondedAt).toLocaleDateString('pl-PL') : '';
+    if (people.length) {
+      people.forEach(p => {
+        rows.push([g.name, p.name, g.email, g.phone, g.code, g.group, status, sent, p.diet || '', p.allergies || '', g.message, song, responded]);
+      });
+    } else {
+      rows.push([g.name, '', g.email, g.phone, g.code, g.group, status, sent, (g.diet || []).join(', '), g.allergies, g.message, song, responded]);
+    }
+  });
   return [headers, ...rows]
     .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
     .join('\n');
@@ -224,7 +251,20 @@ function normalizeBudgetItem(item) {
   };
 }
 
+function normalizePerson(p, index = 0) {
+  return {
+    id: p.id || ('person-' + index),
+    name: p.name || p.display_name || '',
+    attending: p.attending !== false,
+    diet: p.diet || '',
+    allergies: p.allergies || '',
+    sortOrder: p.sortOrder ?? p.sort_order ?? index + 1,
+  };
+}
+
 function normalizeGuest(g) {
+  const people = (g.people || g.guest_people || []).map(normalizePerson)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
   return {
     id: g.id,
     name: g.name || '',
@@ -234,11 +274,14 @@ function normalizeGuest(g) {
     group: g.group || g.group_name || '',
     maxGuests: g.maxGuests ?? g.max_guests ?? 1,
     status: g.status || 'pending',
-    confirmedGuests: g.confirmedGuests ?? g.confirmed_guests ?? 0,
+    confirmedGuests: g.confirmedGuests ?? g.confirmed_guests ?? people.filter(p => p.attending).length,
     diet: g.diet || [],
     allergies: g.allergies || '',
     message: g.message || '',
-    songRequest: g.songRequest || g.song_request || '',
+    songArtist: g.songArtist || g.song_artist || '',
+    songTitle: g.songTitle || g.song_title || g.songRequest || g.song_request || '',
+    songDedication: g.songDedication || g.song_dedication || '',
+    people,
     respondedAt: g.respondedAt || g.responded_at || null,
     invitationSentAt: g.invitationSentAt || g.invitation_sent_at || null,
   };
@@ -313,7 +356,10 @@ const LocalStore = {
       diet: [],
       allergies: '',
       message: '',
-      songRequest: '',
+      songArtist: '',
+      songTitle: '',
+      songDedication: '',
+      people: [],
       respondedAt: null,
       invitationSentAt: null,
     });
@@ -345,13 +391,18 @@ const LocalStore = {
     const guest = await this.getGuestByCode(code);
     if (!guest) return { success: false, error: 'Nieprawidłowy kod zaproszenia.' };
 
+    const people = rsvpData.attending ? (rsvpData.people || []).map(normalizePerson) : [];
+    if (rsvpData.attending && (people.length < 1 || people.length > guest.maxGuests)) {
+      return { success: false, error: 'Nieprawidłowa liczba osób.' };
+    }
     await this.updateGuest(guest.id, {
       status: rsvpData.attending ? 'confirmed' : 'declined',
-      confirmedGuests: rsvpData.attending ? rsvpData.guestCount : 0,
-      diet: rsvpData.diet || [],
-      allergies: rsvpData.allergies || '',
+      confirmedGuests: people.length,
       message: rsvpData.message || '',
-      songRequest: rsvpData.songRequest || '',
+      songArtist: rsvpData.songArtist || '',
+      songTitle: rsvpData.songTitle || '',
+      songDedication: rsvpData.songDedication || '',
+      people,
       respondedAt: new Date().toISOString(),
     });
 
