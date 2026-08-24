@@ -9,11 +9,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     initNavigation();
     initFAQ();
     initGalleryLightbox();
-    initGiftsCopy();
     await renderPageContent();
     initCountdown();
     await initRSVP();
     await personalizeFromInviteCode();
+    await initGifts();
   } finally {
     setPageLoading(false);
   }
@@ -122,19 +122,7 @@ function parseGalleryUrls(raw) {
 }
 
 function renderGiftsExtras(settings) {
-  const bankWrap = document.getElementById('gifts-bank');
-  const bankEl = document.getElementById('gifts-bank-account');
   const linkEl = document.getElementById('gifts-link');
-
-  if (bankWrap && bankEl) {
-    if (settings.giftsBankAccount) {
-      bankWrap.hidden = false;
-      bankEl.textContent = settings.giftsBankAccount;
-    } else {
-      bankWrap.hidden = true;
-    }
-  }
-
   if (linkEl) {
     if (settings.giftsLink) {
       linkEl.hidden = false;
@@ -145,20 +133,80 @@ function renderGiftsExtras(settings) {
   }
 }
 
-function initGiftsCopy() {
-  document.getElementById('gifts-copy-btn')?.addEventListener('click', async () => {
-    const text = document.getElementById('gifts-bank-account')?.textContent?.trim();
-    if (!text) return;
+async function initGifts() {
+  const listEl = document.getElementById('gifts-list');
+  const hintEl = document.getElementById('gifts-claim-hint');
+  if (!listEl) return;
+
+  const code = new URLSearchParams(window.location.search).get('kod')?.trim() || '';
+  let guest = null;
+  if (code) {
+    try { guest = await getGuestByCode(code); } catch { /* offline */ }
+  }
+  if (hintEl) hintEl.hidden = !!guest;
+
+  async function render() {
+    let gifts = [];
     try {
-      await navigator.clipboard.writeText(text);
-      const btn = document.getElementById('gifts-copy-btn');
-      const prev = btn.textContent;
-      btn.textContent = 'Skopiowano';
-      setTimeout(() => { btn.textContent = prev; }, 1500);
+      gifts = await getGifts();
     } catch {
-      alert('Nie udało się skopiować. Zaznacz numer ręcznie.');
+      listEl.innerHTML = '';
+      return;
+    }
+
+    if (!gifts.length) {
+      listEl.innerHTML = '';
+      return;
+    }
+
+    listEl.innerHTML = gifts.map(g => {
+      const claimed = !!g.claimedByGuestId;
+      const mine = guest && g.claimedByGuestId === guest.id;
+      let status = '<span class="gift-status available">Wolne</span>';
+      if (claimed) {
+        status = `<span class="gift-status taken">Zajęte${g.claimerName ? ' — ' + escapeHtml(g.claimerName) : ''}</span>`;
+      }
+      let actions = '';
+      if (guest) {
+        if (!claimed) {
+          actions = `<button type="button" class="btn btn-sm btn-secondary" data-claim="${g.id}">Zajmij</button>`;
+        } else if (mine) {
+          actions = `<button type="button" class="btn btn-sm btn-secondary" data-release="${g.id}">Zrezygnuj</button>`;
+        }
+      }
+      const link = g.url
+        ? `<a href="${escapeHtml(g.url)}" target="_blank" rel="noopener" class="gift-link">Zobacz</a>`
+        : '';
+      const notes = g.notes ? `<p class="gift-notes">${escapeHtml(g.notes)}</p>` : '';
+      return `
+        <div class="gift-item ${claimed ? 'claimed' : ''}">
+          <div class="gift-item-main">
+            <strong>${escapeHtml(g.name)}</strong>
+            ${notes}
+            <div class="gift-item-meta">${status}${link}</div>
+          </div>
+          <div class="gift-item-actions">${actions}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  listEl.addEventListener('click', async (e) => {
+    const claimId = e.target.closest('[data-claim]')?.dataset.claim;
+    const releaseId = e.target.closest('[data-release]')?.dataset.release;
+    if (!guest || (!claimId && !releaseId)) return;
+    try {
+      const result = claimId
+        ? await claimGift(guest.code, claimId)
+        : await releaseGift(guest.code, releaseId);
+      if (!result.success) alert(result.error || 'Nie udało się.');
+      await render();
+    } catch {
+      alert('Błąd połączenia. Spróbuj ponownie.');
     }
   });
+
+  await render();
 }
 
 function renderGallery(urls) {

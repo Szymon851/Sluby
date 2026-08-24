@@ -1,4 +1,4 @@
--- 3/7  reset → schema → settings_extras → budget → vendors → rsvp_people → demo_seed
+-- 3/8  reset → schema → settings_extras → budget → vendors → rsvp_people → gifts → demo_seed
 -- Dodatkowe pola strony: prezenty, zdjęcia, motyw, tryb publikacji.
 
 ALTER TABLE wedding_settings ADD COLUMN gifts_bank_account TEXT DEFAULT '';

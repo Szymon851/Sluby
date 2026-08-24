@@ -53,6 +53,7 @@
           <li><button type="button" data-panel="diet">Dieta</button></li>
           <li><button type="button" data-panel="songs">Piosenki</button></li>
           <li><button type="button" data-panel="messages">Wiadomości</button></li>
+          <li><button type="button" data-panel="gifts">Prezenty</button></li>
           <li><button type="button" data-panel="budget">Budżet</button></li>
           <li><button type="button" data-panel="schedule">Harmonogram</button></li>
           <li><button type="button" data-panel="faq">FAQ</button></li>
@@ -170,6 +171,29 @@
           <h2>Wiadomości od gości</h2>
           <p style="color:var(--text-muted);margin-bottom:24px;">Wpisy z formularza RSVP.</p>
           <div id="messages-list"></div>
+        </div>
+
+        <div class="admin-panel" id="panel-gifts">
+          <h2>Lista prezentów</h2>
+          <p style="color:var(--text-muted);margin-bottom:24px;">Goście zajmują pozycje po wejściu z osobistego linku (?kod=).</p>
+          <div class="table-wrapper">
+            <div class="table-toolbar">
+              <span></span>
+              <button type="button" class="btn btn-sm btn-primary" id="gift-add-btn">+ Prezent</button>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Nazwa</th>
+                  <th>Link</th>
+                  <th>Status</th>
+                  <th>Kolejność</th>
+                  <th>Akcje</th>
+                </tr>
+              </thead>
+              <tbody id="gifts-table-body"></tbody>
+            </table>
+          </div>
         </div>
 
         <!-- Budżet -->
@@ -357,18 +381,13 @@
               <textarea name="accommodation" rows="2"></textarea>
             </div>
             <div class="form-group">
-              <label>Prezenty (tekst)</label>
+              <label>Prezenty (tekst na stronie)</label>
               <textarea name="gifts" rows="2"></textarea>
+              <p class="field-hint">Listę pozycji edytujesz w zakładce Prezenty. Opcjonalny link poniżej może prowadzić do zewnętrznej inspiracji.</p>
             </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>Numer konta (IBAN)</label>
-                <input type="text" name="giftsBankAccount" placeholder="PL00 0000 0000 0000 0000 0000 0000">
-              </div>
-              <div class="form-group">
-                <label>Link do listy prezentów</label>
-                <input type="url" name="giftsLink" placeholder="https://…">
-              </div>
+            <div class="form-group">
+              <label>Link zewnętrzny (opcjonalnie)</label>
+              <input type="url" name="giftsLink" placeholder="https://…">
             </div>
             <div class="form-group">
               <label>Zdjęcie hero (URL lub ścieżka)</label>
@@ -667,6 +686,35 @@
         </div>
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary btn-sm" id="vendor-cancel">Anuluj</button>
+          <button type="submit" class="btn btn-primary btn-sm">Zapisz</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="gift-modal">
+    <div class="modal">
+      <h3 id="gift-modal-title">Dodaj prezent</h3>
+      <form id="gift-form">
+        <input type="hidden" id="gift-edit-id">
+        <div class="form-group">
+          <label for="gift-name">Nazwa</label>
+          <input type="text" id="gift-name" required>
+        </div>
+        <div class="form-group">
+          <label for="gift-url">Link (opcjonalnie)</label>
+          <input type="url" id="gift-url" placeholder="https://…">
+        </div>
+        <div class="form-group">
+          <label for="gift-notes">Notatka</label>
+          <input type="text" id="gift-notes" placeholder="np. kolor, rozmiar">
+        </div>
+        <div class="form-group">
+          <label for="gift-sort">Kolejność</label>
+          <input type="number" id="gift-sort" min="0" value="0">
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary btn-sm" id="gift-cancel">Anuluj</button>
           <button type="submit" class="btn btn-primary btn-sm">Zapisz</button>
         </div>
       </form>

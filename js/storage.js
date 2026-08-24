@@ -15,7 +15,7 @@ const DEFAULT_DATA = {
     contactPhone: '+48 600 123 456',
     story: 'Poznaliśmy się w 2019 roku na koncercie jazzowym. Od pierwszej rozmowy wiedzieliśmy, że to coś wyjątkowego. Po sześciu wspaniałych latach razem, Michał poprosił Annę o rękę podczas wycieczki w Bieszczady. Teraz nie możemy się doczekać, by świętować ten dzień z Wami!',
     accommodation: 'Dla gości z daleka polecamy Hotel Bellotto (5 min spacerem) oraz Apartamenty Królewskie.',
-    gifts: 'Wasza obecność to dla nas największy prezent! Jeśli jednak chcecie nas obdarować, będziemy wdzięczni za datek na naszą podróż poślubną.',
+    gifts: 'Wasza obecność to dla nas największy prezent. Jeśli chcecie coś nam sprawić — poniżej jest luźna lista inspiracji. Nic nie musicie zajmować.',
     giftsBankAccount: '',
     giftsLink: '',
     heroImageUrl: 'img/hero.jpg',
@@ -49,6 +49,7 @@ const DEFAULT_DATA = {
   ],
   budget: [],
   vendors: [],
+  gifts: [],
 };
 
 const LOCAL_SESSION_KEY = 'naszSlub_admin';
@@ -101,6 +102,7 @@ function mergeDefaults(saved, defaults) {
     checklist: saved.checklist?.length ? saved.checklist : defaults.checklist,
     budget: (saved.budget || []).map(normalizeBudgetItem),
     vendors: (saved.vendors || []).map(normalizeVendor),
+    gifts: (saved.gifts || []).map(normalizeGiftItem),
   };
 }
 
@@ -132,6 +134,19 @@ function normalizeVendor(v) {
     email: v.email || '',
     notes: v.notes || '',
     contractDate: v.contractDate || v.contract_date || '',
+  };
+}
+
+function normalizeGiftItem(g, index = 0) {
+  return {
+    id: g.id || ('gift-' + index),
+    name: g.name || '',
+    url: g.url || '',
+    notes: g.notes || '',
+    sortOrder: g.sortOrder ?? g.sort_order ?? index + 1,
+    claimedByGuestId: g.claimedByGuestId || g.claimed_by_guest_id || null,
+    claimerName: g.claimerName || g.claimer_name || '',
+    claimedAt: g.claimedAt || g.claimed_at || null,
   };
 }
 
@@ -622,6 +637,81 @@ const LocalStore = {
       for (const p of s.payments) await this.addBudgetPayment(item.id, p);
     }
     return this.getBudgetItems();
+  },
+
+  async getGifts() {
+    const data = loadData();
+    const guests = data.guests.map(normalizeGuest);
+    return data.gifts.map(normalizeGiftItem).map(g => {
+      if (!g.claimedByGuestId) return g;
+      const guest = guests.find(x => x.id === g.claimedByGuestId);
+      return { ...g, claimerName: guest?.name || g.claimerName || '' };
+    }).sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, 'pl'));
+  },
+
+  async addGift(item) {
+    const data = loadData();
+    const row = normalizeGiftItem({
+      id: generateId('gift'),
+      ...item,
+      sortOrder: item.sortOrder ?? data.gifts.length + 1,
+      claimedByGuestId: null,
+      claimerName: '',
+      claimedAt: null,
+    });
+    data.gifts.push(row);
+    saveData(data);
+    return row;
+  },
+
+  async updateGift(id, updates) {
+    const data = loadData();
+    const idx = data.gifts.findIndex(g => g.id === id);
+    if (idx === -1) return null;
+    data.gifts[idx] = normalizeGiftItem({ ...data.gifts[idx], ...updates });
+    saveData(data);
+    return data.gifts[idx];
+  },
+
+  async deleteGift(id) {
+    const data = loadData();
+    data.gifts = data.gifts.filter(g => g.id !== id);
+    saveData(data);
+  },
+
+  async claimGift(code, giftId) {
+    const guest = await this.getGuestByCode(code);
+    if (!guest) return { success: false, error: 'Nieprawidłowy kod zaproszenia.' };
+    const data = loadData();
+    const idx = data.gifts.findIndex(g => g.id === giftId);
+    if (idx === -1) return { success: false, error: 'Nie znaleziono prezentu.' };
+    const gift = data.gifts[idx];
+    if (gift.claimedByGuestId && gift.claimedByGuestId !== guest.id) {
+      return { success: false, error: 'Ten prezent jest już zajęty.' };
+    }
+    data.gifts[idx] = {
+      ...gift,
+      claimedByGuestId: guest.id,
+      claimerName: guest.name,
+      claimedAt: new Date().toISOString(),
+    };
+    saveData(data);
+    return { success: true };
+  },
+
+  async releaseGift(code, giftId) {
+    const guest = await this.getGuestByCode(code);
+    if (!guest) return { success: false, error: 'Nieprawidłowy kod zaproszenia.' };
+    const data = loadData();
+    const idx = data.gifts.findIndex(g => g.id === giftId);
+    if (idx === -1) return { success: false, error: 'Nie znaleziono prezentu.' };
+    const gift = data.gifts[idx];
+    if (gift.claimedByGuestId && gift.claimedByGuestId !== guest.id) {
+      return { success: false, error: 'Możesz zwolnić tylko swój prezent.' };
+    }
+    data.gifts[idx] = { ...gift, claimedByGuestId: null, claimerName: '', claimedAt: null };
+    saveData(data);
+    return { success: true };
   },
 
   async getGuestStats() {

@@ -1,5 +1,5 @@
--- 7/7  reset → schema → settings_extras → budget → vendors → rsvp_people → demo_seed
--- Przykładowe dane. Nadpisuje ustawienia i wstawia gości, plan, FAQ, budżet, dostawców.
+-- 8/8  reset → schema → settings_extras → budget → vendors → rsvp_people → gifts → demo_seed
+-- Przykładowe dane. Nadpisuje ustawienia i wstawia gości, plan, FAQ, budżet, dostawców, prezenty.
 -- Kody testowe: DEMO-AAAA, DEMO-PARA, DEMO-BABCIA, DEMO-KUBA, DEMO-OLA, DEMO-TOME, DEMO-MARE, DEMO-NATA
 
 UPDATE wedding_settings SET
@@ -15,9 +15,9 @@ UPDATE wedding_settings SET
   contact_phone = '+48 600 123 456',
   story = 'Poznaliśmy się w 2019 roku na koncercie jazzowym. Od pierwszej rozmowy wiedzieliśmy, że to coś wyjątkowego. Po sześciu wspaniałych latach razem Michał poprosił Annę o rękę w Bieszczadach. Nie możemy się doczekać, by świętować ten dzień z Wami!',
   accommodation = 'Dla gości z daleka: Hotel Bellotto (5 min spacerem) oraz Apartamenty Królewskie. Zniżkę kodem SLUB2026.',
-  gifts = 'Wasza obecność to największy prezent. Jeśli chcecie nas obdarować — datek na podróż poślubną.',
-  gifts_bank_account = 'PL61 1090 1014 0000 0712 1981 2874',
-  gifts_link = 'https://example.com/lista-prezentow',
+  gifts = 'Wasza obecność to dla nas największy prezent. Jeśli chcecie coś nam sprawić — poniżej jest luźna lista inspiracji. Nic nie musicie zajmować.',
+  gifts_bank_account = '',
+  gifts_link = '',
   hero_image_url = 'img/hero.jpg',
   gallery_urls = E'https://images.unsplash.com/photo-1519741497674-611481863552?w=800\nhttps://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=800\nhttps://images.unsplash.com/photo-1520854221256-17451cc331bf?w=800\nhttps://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800',
   site_url = '',
@@ -29,6 +29,7 @@ WHERE id = 1;
 DELETE FROM budget_payments;
 DELETE FROM budget_items;
 DELETE FROM vendors;
+DELETE FROM gift_items;
 DELETE FROM guest_people;
 DELETE FROM guests;
 DELETE FROM checklist_items;
@@ -163,3 +164,18 @@ JOIN (VALUES
   (8, 'Saldo ubrania', 5500, '2026-07-01', false, NULL, '')
 ) AS p(sort_order, label, amount, due_date, is_paid, paid_at, notes)
   ON i.sort_order = p.sort_order;
+
+INSERT INTO gift_items (name, url, notes, sort_order, claimed_by_guest_id, claimed_at)
+SELECT
+  v.name, v.url, v.notes, v.sort_order,
+  CASE WHEN v.claimer_code IS NOT NULL THEN g.id ELSE NULL END,
+  CASE WHEN v.claimer_code IS NOT NULL THEN NOW() - INTERVAL '1 day' ELSE NULL END
+FROM (VALUES
+  ('Zestaw filiżanek do espresso', 'https://example.com/filizanki', 'Kolor: kremowy', 1, NULL),
+  ('Koc piknikowy', 'https://example.com/koc', '', 2, 'DEMO-AAAA'),
+  ('Voucher do kina', '', '2 bilety', 3, NULL),
+  ('Ramka na zdjęcia 30×40', 'https://example.com/ramka', '', 4, NULL),
+  ('Książka kucharska', '', 'Preferujemy kuchnię śródziemnomorską', 5, NULL)
+) AS v(name, url, notes, sort_order, claimer_code)
+LEFT JOIN guests g ON g.invite_code = v.claimer_code;
+

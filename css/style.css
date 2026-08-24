@@ -1544,32 +1544,56 @@ body:not(.page-loading) .page-loader {
 }
 
 /* ===== Prezenty / IBAN ===== */
-.gifts-bank {
+.gifts-list {
   margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   text-align: left;
 }
 
-.gifts-bank-label {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
-  margin-bottom: 6px;
-}
-
-.gifts-bank-row {
+.gift-item {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
 }
 
-.gifts-bank-row code {
+.gift-item:first-child { border-top: none; padding-top: 0; }
+
+.gift-item.claimed { opacity: 0.85; }
+
+.gift-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 6px;
   font-size: 0.8125rem;
-  background: var(--cream);
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  align-items: center;
+}
+
+.gift-status.available { color: var(--sage-dark); }
+.gift-status.taken { color: var(--text-muted); }
+
+.gift-link {
+  color: var(--sage-dark);
+  text-decoration: underline;
+}
+
+.gift-notes {
+  margin: 4px 0 0;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.gift-item-actions { flex-shrink: 0; }
+
+.gifts-claim-hint {
+  margin-top: 12px;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
 }
 
 .story-intro {

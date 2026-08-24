@@ -72,6 +72,7 @@ async function showDashboard() {
     initSchedulePanel();
     initFaqPanel();
     initVendorPanel();
+    initGiftPanel();
     document.getElementById('bulk-send-btn')?.addEventListener('click', startBulkSend);
     dashboardInitialized = true;
   }
@@ -136,11 +137,12 @@ async function renderOnboarding(settings, stats) {
   const box = document.getElementById('onboarding-box');
   if (!list || !box) return;
 
+  const giftCount = (await getGifts().catch(() => [])).length;
   const checks = [
     { ok: !!(settings.brideName && settings.groomName && settings.weddingDate), text: 'Imiona i data ślubu w Ustawieniach' },
     { ok: !!(settings.heroImageUrl), text: 'Zdjęcie hero (plik w img/ lub URL)' },
     { ok: !!(settings.siteUrl), text: 'Adres strony (siteUrl) — potrzebny do linków w zaproszeniach' },
-    { ok: !!(settings.giftsBankAccount || settings.gifts), text: 'Informacja o prezentach / koncie' },
+    { ok: !!(settings.gifts || giftCount), text: 'Informacja o prezentach / lista' },
     { ok: stats.total > 0, text: 'Dodano pierwszego gościa' },
     { ok: normalizeSiteMode(settings.siteMode) === 'live', text: 'Strona w trybie live (ustawia wdrażający w Supabase)' },
   ];
@@ -349,7 +351,7 @@ async function renderMessagesList() {
 const SETTINGS_FIELDS = [
   'brideName', 'groomName', 'weddingDate', 'venue', 'venueAddress',
   'venueMapUrl', 'dressCode', 'rsvpDeadline', 'contactEmail', 'contactPhone',
-  'story', 'accommodation', 'gifts', 'giftsBankAccount', 'giftsLink',
+  'story', 'accommodation', 'gifts', 'giftsLink',
   'heroImageUrl', 'galleryUrls', 'theme', 'siteUrl',
 ];
 
@@ -678,6 +680,7 @@ async function refreshAll() {
   await renderScheduleAdmin();
   await renderFaqAdmin();
   await renderVendors();
+  await renderGiftsAdmin();
 }
 
 function formatMoney(n) {
@@ -1172,6 +1175,88 @@ async function renderVendors() {
       if (btn.dataset.action === 'del' && confirm('Usunąć dostawcę?')) {
         await deleteVendor(btn.dataset.id);
         await renderVendors();
+      }
+    });
+  });
+}
+
+function initGiftPanel() {
+  document.getElementById('gift-add-btn')?.addEventListener('click', () => openGiftModal());
+  document.getElementById('gift-cancel')?.addEventListener('click', () => closeModal('gift-modal'));
+  document.getElementById('gift-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('gift-edit-id').value;
+    const payload = {
+      name: document.getElementById('gift-name').value.trim(),
+      url: document.getElementById('gift-url').value.trim(),
+      notes: document.getElementById('gift-notes').value.trim(),
+      sortOrder: parseInt(document.getElementById('gift-sort').value, 10) || 0,
+    };
+    try {
+      if (id) await updateGift(id, payload);
+      else await addGift(payload);
+      closeModal('gift-modal');
+      await renderGiftsAdmin();
+    } catch (err) {
+      alert('Błąd: ' + (err.message || err) + '\nUruchom supabase/gifts.sql jeśli tabela nie istnieje.');
+    }
+  });
+}
+
+function openGiftModal(item) {
+  document.getElementById('gift-modal-title').textContent = item ? 'Edytuj prezent' : 'Dodaj prezent';
+  document.getElementById('gift-edit-id').value = item?.id || '';
+  document.getElementById('gift-name').value = item?.name || '';
+  document.getElementById('gift-url').value = item?.url || '';
+  document.getElementById('gift-notes').value = item?.notes || '';
+  document.getElementById('gift-sort').value = item?.sortOrder ?? 0;
+  openModal('gift-modal');
+}
+
+async function renderGiftsAdmin() {
+  const tbody = document.getElementById('gifts-table-body');
+  if (!tbody) return;
+  let items = [];
+  try {
+    items = await getGifts();
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" style="color:var(--text-muted);padding:20px;">
+      Brak tabeli prezentów. Uruchom <code>supabase/gifts.sql</code>.
+    </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = items.length ? items.map(item => `
+    <tr>
+      <td><strong>${escapeHtml(item.name)}</strong>
+        ${item.notes ? `<div class="budget-notes">${escapeHtml(item.notes)}</div>` : ''}
+      </td>
+      <td>${item.url ? `<a href="${escapeHtml(item.url)}" target="_blank" rel="noopener">Link</a>` : '—'}</td>
+      <td>${item.claimedByGuestId
+        ? `<span class="badge badge-confirmed">Zajęte</span> ${escapeHtml(item.claimerName || '')}`
+        : '<span class="badge badge-pending">Wolne</span>'}</td>
+      <td>${item.sortOrder}</td>
+      <td class="actions">
+        <button type="button" class="btn btn-sm btn-secondary" data-action="edit" data-id="${item.id}">Edytuj</button>
+        ${item.claimedByGuestId
+          ? `<button type="button" class="btn btn-sm btn-secondary" data-action="clear" data-id="${item.id}">Zwolnij</button>`
+          : ''}
+        <button type="button" class="btn btn-sm btn-danger" data-action="del" data-id="${item.id}">Usuń</button>
+      </td>
+    </tr>
+  `).join('') : '<tr><td colspan="5" style="color:var(--text-muted);padding:20px;">Brak prezentów na liście.</td></tr>';
+
+  tbody.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const item = items.find(i => i.id === btn.dataset.id);
+      if (btn.dataset.action === 'edit' && item) openGiftModal(item);
+      if (btn.dataset.action === 'clear' && item && confirm('Zwolnić ten prezent?')) {
+        await updateGift(item.id, { claimedByGuestId: null });
+        await renderGiftsAdmin();
+      }
+      if (btn.dataset.action === 'del' && confirm('Usunąć prezent z listy?')) {
+        await deleteGift(btn.dataset.id);
+        await renderGiftsAdmin();
       }
     });
   });

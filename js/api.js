@@ -502,6 +502,64 @@ const CloudStore = {
     return LocalStore.seedBudgetDefaults.call(this);
   },
 
+  async getGifts() {
+    const { data, error } = await supabaseClient.rpc('get_gifts');
+    if (error) throw error;
+    return (data || []).map(normalizeGiftItem);
+  },
+
+  async addGift(item) {
+    const payload = {
+      name: item.name,
+      url: item.url || '',
+      notes: item.notes || '',
+      sort_order: item.sortOrder ?? 0,
+    };
+    const { data, error } = await supabaseClient.from('gift_items').insert(payload).select().single();
+    if (error) throw error;
+    return normalizeGiftItem(data);
+  },
+
+  async updateGift(id, updates) {
+    const db = {};
+    if (updates.name !== undefined) db.name = updates.name;
+    if (updates.url !== undefined) db.url = updates.url;
+    if (updates.notes !== undefined) db.notes = updates.notes;
+    if (updates.sortOrder !== undefined) db.sort_order = updates.sortOrder;
+    if (updates.claimedByGuestId === null) {
+      db.claimed_by_guest_id = null;
+      db.claimed_at = null;
+    }
+    const { data, error } = await supabaseClient.from('gift_items').update(db).eq('id', id).select().single();
+    if (error) throw error;
+    return normalizeGiftItem(data);
+  },
+
+  async deleteGift(id) {
+    const { error } = await supabaseClient.from('gift_items').delete().eq('id', id);
+    if (error) throw error;
+  },
+
+  async claimGift(code, giftId) {
+    const { data, error } = await supabaseClient.rpc('claim_gift', {
+      p_code: code.trim(),
+      p_gift_id: giftId,
+    });
+    if (error) throw error;
+    if (!data?.success) return { success: false, error: data?.error || 'Nie udało się zająć prezentu.' };
+    return { success: true };
+  },
+
+  async releaseGift(code, giftId) {
+    const { data, error } = await supabaseClient.rpc('release_gift', {
+      p_code: code.trim(),
+      p_gift_id: giftId,
+    });
+    if (error) throw error;
+    if (!data?.success) return { success: false, error: data?.error || 'Nie udało się zwolnić prezentu.' };
+    return { success: true };
+  },
+
   async getGuestStats() {
     return computeGuestStats(() => this.getGuests());
   },
@@ -591,6 +649,13 @@ async function addBudgetPayment(itemId, p) { return store.addBudgetPayment(itemI
 async function updateBudgetPayment(itemId, paymentId, u) { return store.updateBudgetPayment(itemId, paymentId, u); }
 async function deleteBudgetPayment(itemId, paymentId) { return store.deleteBudgetPayment(itemId, paymentId); }
 async function seedBudgetDefaults() { return store.seedBudgetDefaults(); }
+
+async function getGifts() { return store.getGifts(); }
+async function addGift(item) { return store.addGift(item); }
+async function updateGift(id, u) { return store.updateGift(id, u); }
+async function deleteGift(id) { return store.deleteGift(id); }
+async function claimGift(code, giftId) { return store.claimGift(code, giftId); }
+async function releaseGift(code, giftId) { return store.releaseGift(code, giftId); }
 
 function getInviteUrl(code) {
   return resolveSiteBaseUrl().then(base =>

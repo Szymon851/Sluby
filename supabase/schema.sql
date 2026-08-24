@@ -1,4 +1,4 @@
--- 2/7  reset → schema → settings_extras → budget → vendors → rsvp_people → demo_seed
+-- 2/8  reset → schema → settings_extras → budget → vendors → rsvp_people → gifts → demo_seed
 -- Rdzeń: ustawienia, plan dnia, FAQ, checklista, zaproszenia (gość = jeden rekord).
 
 CREATE TABLE wedding_settings (
