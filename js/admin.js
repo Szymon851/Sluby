@@ -351,7 +351,7 @@ async function renderMessagesList() {
 const SETTINGS_FIELDS = [
   'brideName', 'groomName', 'weddingDate', 'venue', 'venueAddress',
   'venueMapUrl', 'dressCode', 'rsvpDeadline', 'contactEmail', 'contactPhone',
-  'story', 'accommodation', 'gifts', 'giftsLink',
+  'story', 'accommodation', 'gifts',
   'heroImageUrl', 'galleryUrls', 'theme', 'siteUrl',
 ];
 

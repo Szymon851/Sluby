@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initCountdown();
     await initRSVP();
     await personalizeFromInviteCode();
-    await initGifts();
+    wireGiftsListLink();
   } finally {
     setPageLoading(false);
   }
@@ -75,7 +75,6 @@ async function renderPageContent() {
   setText('contact-email', settings.contactEmail);
   setText('contact-phone', settings.contactPhone);
 
-  renderGiftsExtras(settings);
   renderGallery(parseGalleryUrls(settings.galleryUrls));
   applyTheme(settings.theme);
 
@@ -121,92 +120,11 @@ function parseGalleryUrls(raw) {
   return String(raw).split('\n').map(s => s.trim()).filter(Boolean);
 }
 
-function renderGiftsExtras(settings) {
-  const linkEl = document.getElementById('gifts-link');
-  if (linkEl) {
-    if (settings.giftsLink) {
-      linkEl.hidden = false;
-      linkEl.href = settings.giftsLink;
-    } else {
-      linkEl.hidden = true;
-    }
-  }
-}
-
-async function initGifts() {
-  const listEl = document.getElementById('gifts-list');
-  const hintEl = document.getElementById('gifts-claim-hint');
-  if (!listEl) return;
-
-  const code = new URLSearchParams(window.location.search).get('kod')?.trim() || '';
-  let guest = null;
-  if (code) {
-    try { guest = await getGuestByCode(code); } catch { /* offline */ }
-  }
-  if (hintEl) hintEl.hidden = !!guest;
-
-  async function render() {
-    let gifts = [];
-    try {
-      gifts = await getGifts();
-    } catch {
-      listEl.innerHTML = '';
-      return;
-    }
-
-    if (!gifts.length) {
-      listEl.innerHTML = '';
-      return;
-    }
-
-    listEl.innerHTML = gifts.map(g => {
-      const claimed = !!g.claimedByGuestId;
-      const mine = guest && g.claimedByGuestId === guest.id;
-      let status = '<span class="gift-status available">Wolne</span>';
-      if (claimed) {
-        status = `<span class="gift-status taken">Zajęte${g.claimerName ? ' — ' + escapeHtml(g.claimerName) : ''}</span>`;
-      }
-      let actions = '';
-      if (guest) {
-        if (!claimed) {
-          actions = `<button type="button" class="btn btn-sm btn-secondary" data-claim="${g.id}">Zajmij</button>`;
-        } else if (mine) {
-          actions = `<button type="button" class="btn btn-sm btn-secondary" data-release="${g.id}">Zrezygnuj</button>`;
-        }
-      }
-      const link = g.url
-        ? `<a href="${escapeHtml(g.url)}" target="_blank" rel="noopener" class="gift-link">Zobacz</a>`
-        : '';
-      const notes = g.notes ? `<p class="gift-notes">${escapeHtml(g.notes)}</p>` : '';
-      return `
-        <div class="gift-item ${claimed ? 'claimed' : ''}">
-          <div class="gift-item-main">
-            <strong>${escapeHtml(g.name)}</strong>
-            ${notes}
-            <div class="gift-item-meta">${status}${link}</div>
-          </div>
-          <div class="gift-item-actions">${actions}</div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  listEl.addEventListener('click', async (e) => {
-    const claimId = e.target.closest('[data-claim]')?.dataset.claim;
-    const releaseId = e.target.closest('[data-release]')?.dataset.release;
-    if (!guest || (!claimId && !releaseId)) return;
-    try {
-      const result = claimId
-        ? await claimGift(guest.code, claimId)
-        : await releaseGift(guest.code, releaseId);
-      if (!result.success) alert(result.error || 'Nie udało się.');
-      await render();
-    } catch {
-      alert('Błąd połączenia. Spróbuj ponownie.');
-    }
-  });
-
-  await render();
+function wireGiftsListLink() {
+  const link = document.getElementById('gifts-list-link');
+  if (!link) return;
+  const code = new URLSearchParams(window.location.search).get('kod')?.trim();
+  link.href = code ? `gifts.html?kod=${encodeURIComponent(code)}` : 'gifts.html';
 }
 
 function renderGallery(urls) {

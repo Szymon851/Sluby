@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lista inspiracji — Nasz Ślub</title>
+  <meta name="description" content="Lista inspiracji prezentowych na ślub">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9C%A6%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="page-loading gifts-page">
+
+  <div class="page-loader" id="page-loader" aria-hidden="true">
+    <div class="page-loader-spinner"></div>
+  </div>
+
+  <nav class="nav scrolled">
+    <div class="container nav-inner">
+      <a href="index.html" class="nav-logo" id="nav-logo">Nasz Ślub</a>
+      <ul class="nav-links">
+        <li><a href="index.html" id="gifts-back-home">Strona główna</a></li>
+        <li><a href="index.html#rsvp" id="gifts-back-rsvp">RSVP</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="gifts-page-main">
+    <div class="container gifts-page-inner">
+      <header class="gifts-page-header">
+        <p class="section-label">Prezenty</p>
+        <h1 class="section-title" id="gifts-page-title">Lista inspiracji</h1>
+        <p class="gifts-page-intro" id="gifts-page-intro">
+          Wasza obecność to dla nas największy prezent. Poniżej luźne pomysły — nic nie musicie zajmować.
+        </p>
+        <p class="gifts-guest-banner" id="gifts-guest-banner" hidden></p>
+        <p class="gifts-claim-hint" id="gifts-claim-hint" hidden>
+          Wejdź z osobistego linku zaproszenia, żeby zająć pozycję z listy.
+        </p>
+      </header>
+
+      <div class="gifts-page-list" id="gifts-list"></div>
+      <p class="gifts-empty" id="gifts-empty" hidden>Lista jest na razie pusta — wróć tu później.</p>
+
+      <p class="gifts-page-footer">
+        <a href="index.html" class="btn btn-secondary" id="gifts-footer-home">← Wróć na stronę główną</a>
+      </p>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/site-control.js"></script>
+  <script src="js/gifts-page.js"></script>
+</body>
+</html>

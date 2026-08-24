@@ -10,7 +10,7 @@ UPDATE wedding_settings SET
   venue_address = 'ul. Stanisława Kostki Potockiego 10/16, 02-958 Warszawa',
   venue_map_url = 'https://maps.google.com/?q=Pałac+w+Wilanowie',
   dress_code = 'Elegancki strój wieczorowy. Panowie — garnitur, panie — suknia koktajlowa. Prosimy unikać bieli.',
-  rsvp_deadline = '2026-08-15',
+  rsvp_deadline = '2026-09-01',
   contact_email = 'anna.imichal@example.com',
   contact_phone = '+48 600 123 456',
   story = 'Poznaliśmy się w 2019 roku na koncercie jazzowym. Od pierwszej rozmowy wiedzieliśmy, że to coś wyjątkowego. Po sześciu wspaniałych latach razem Michał poprosił Annę o rękę w Bieszczadach. Nie możemy się doczekać, by świętować ten dzień z Wami!',
