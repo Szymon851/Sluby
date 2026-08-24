@@ -1,4 +1,4 @@
--- 6/8  reset → schema → settings_extras → budget → vendors → rsvp_people → gifts → demo_seed
+-- 6/9  reset → schema → settings_extras → budget → vendors → rsvp_people → gifts → checklist_panel → demo_seed
 -- Osoby na zaproszeniu, piosenka per osoba, nowe RPC.
 
 CREATE TABLE guest_people (

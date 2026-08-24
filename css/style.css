@@ -938,6 +938,28 @@ tr:hover td { background: rgba(139, 154, 123, 0.04); }
   border-bottom: 1px solid var(--border);
 }
 
+.checklist-item .drag-handle {
+  cursor: grab;
+  color: var(--text-muted);
+  user-select: none;
+  letter-spacing: -2px;
+  font-size: 0.75rem;
+  padding: 4px 2px;
+}
+
+.checklist-item.dragging {
+  opacity: 0.55;
+  background: var(--ivory);
+}
+
+.checklist-item.drag-over {
+  border-top-color: var(--sage);
+}
+
+.checklist-jump {
+  flex-shrink: 0;
+}
+
 .checklist-item input[type="checkbox"] {
   width: 20px;
   height: 20px;
@@ -961,11 +983,13 @@ tr:hover td { background: rgba(139, 154, 123, 0.04); }
   align-items: stretch;
   gap: 12px;
   margin-top: 24px;
-  max-width: 640px;
+  max-width: 720px;
+  flex-wrap: wrap;
 }
 
 .checklist-add input {
   flex: 1;
+  min-width: 180px;
   padding: 12px 16px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -973,9 +997,66 @@ tr:hover td { background: rgba(139, 154, 123, 0.04); }
   background: var(--ivory);
 }
 
+.checklist-add select {
+  min-width: 150px;
+  padding: 12px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.9375rem;
+  background: var(--ivory);
+  font-family: inherit;
+}
+
 .checklist-add .btn {
   flex-shrink: 0;
   min-width: 100px;
+}
+
+.sortable-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 800px;
+}
+
+.faq-sortable-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--ivory);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.faq-sortable-item .drag-handle {
+  cursor: grab;
+  color: var(--text-muted);
+  user-select: none;
+  letter-spacing: -2px;
+  font-size: 0.75rem;
+  padding-top: 4px;
+}
+
+.faq-sortable-item.dragging { opacity: 0.55; }
+.faq-sortable-item.drag-over { border-color: var(--sage); }
+
+.faq-sortable-item .sortable-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.faq-sortable-item .sortable-body p {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+}
+
+.faq-sortable-item .actions {
+  flex-shrink: 0;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 /* ===== Modal ===== */

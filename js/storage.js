@@ -41,11 +41,11 @@ const DEFAULT_DATA = {
   ],
   guests: [],
   checklist: [
-    { id: 'task-1', text: 'Zarezerwować salę weselną', done: true },
-    { id: 'task-2', text: 'Wybrać fotografa', done: true },
-    { id: 'task-3', text: 'Wysłać zaproszenia', done: false },
-    { id: 'task-4', text: 'Zamówić tort', done: false },
-    { id: 'task-5', text: 'Ustalić menu z cateringiem', done: false },
+    { id: 'task-1', text: 'Zarezerwować salę weselną', done: true, sortOrder: 1, linkPanel: 'vendors' },
+    { id: 'task-2', text: 'Wybrać fotografa', done: true, sortOrder: 2, linkPanel: 'vendors' },
+    { id: 'task-3', text: 'Wysłać zaproszenia', done: false, sortOrder: 3, linkPanel: 'guests' },
+    { id: 'task-4', text: 'Ustalić menu z cateringiem', done: false, sortOrder: 4, linkPanel: 'diet' },
+    { id: 'task-5', text: 'Uzupełnić listę prezentów', done: false, sortOrder: 5, linkPanel: 'gifts' },
   ],
   budget: [],
   vendors: [],
@@ -99,7 +99,7 @@ function mergeDefaults(saved, defaults) {
     schedule: (saved.schedule?.length ? saved.schedule : defaults.schedule).map(normalizeScheduleItem),
     faq: (saved.faq?.length ? saved.faq : defaults.faq).map(normalizeFaqItem),
     guests,
-    checklist: saved.checklist?.length ? saved.checklist : defaults.checklist,
+    checklist: (saved.checklist?.length ? saved.checklist : defaults.checklist).map(normalizeChecklistItem),
     budget: (saved.budget || []).map(normalizeBudgetItem),
     vendors: (saved.vendors || []).map(normalizeVendor),
     gifts: (saved.gifts || []).map(normalizeGiftItem),
@@ -116,12 +116,38 @@ function normalizeScheduleItem(item, index = 0) {
   };
 }
 
+function timeSortKey(time) {
+  const m = String(time || '').match(/(\d{1,2}):(\d{2})/);
+  if (!m) return 99999;
+  return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+}
+
+function sortScheduleByTime(items) {
+  return [...items].sort((a, b) => timeSortKey(a.time) - timeSortKey(b.time) || String(a.title).localeCompare(String(b.title), 'pl'));
+}
+
+function toTimeInputValue(time) {
+  const m = String(time || '').match(/(\d{1,2}):(\d{2})/);
+  if (!m) return '';
+  return String(m[1]).padStart(2, '0') + ':' + m[2];
+}
+
 function normalizeFaqItem(item, index = 0) {
   return {
     id: item.id || ('faq-' + index + '-' + String(item.question || '').slice(0, 24)).replace(/\s+/g, '-'),
     question: item.question || '',
     answer: item.answer || '',
     sortOrder: item.sortOrder ?? item.sort_order ?? index + 1,
+  };
+}
+
+function normalizeChecklistItem(item, index = 0) {
+  return {
+    id: item.id || ('task-' + index),
+    text: item.text || '',
+    done: !!item.done,
+    sortOrder: item.sortOrder ?? item.sort_order ?? index + 1,
+    linkPanel: item.linkPanel || item.link_panel || '',
   };
 }
 
@@ -421,7 +447,7 @@ const LocalStore = {
   },
 
   async getSchedule() {
-    return loadData().schedule.map(normalizeScheduleItem).sort((a, b) => a.sortOrder - b.sortOrder);
+    return sortScheduleByTime(loadData().schedule.map(normalizeScheduleItem));
   },
 
   async addScheduleItem(item) {
@@ -429,7 +455,7 @@ const LocalStore = {
     const row = normalizeScheduleItem({
       id: generateId('sched'),
       ...item,
-      sortOrder: item.sortOrder ?? data.schedule.length + 1,
+      sortOrder: data.schedule.length + 1,
     });
     data.schedule.push(row);
     saveData(data);
@@ -482,6 +508,15 @@ const LocalStore = {
     saveData(data);
   },
 
+  async reorderFaqItems(orderedIds) {
+    const data = loadData();
+    orderedIds.forEach((id, i) => {
+      const item = data.faq.find(f => f.id === id);
+      if (item) item.sortOrder = i + 1;
+    });
+    saveData(data);
+  },
+
   async getVendors() {
     return loadData().vendors.map(normalizeVendor);
   },
@@ -510,12 +545,18 @@ const LocalStore = {
   },
 
   async getChecklist() {
-    return loadData().checklist;
+    return loadData().checklist.map(normalizeChecklistItem).sort((a, b) => a.sortOrder - b.sortOrder);
   },
 
-  async addChecklistItem(text) {
+  async addChecklistItem(text, linkPanel = '') {
     const data = loadData();
-    const item = { id: generateId('task'), text, done: false };
+    const item = normalizeChecklistItem({
+      id: generateId('task'),
+      text,
+      done: false,
+      sortOrder: data.checklist.length + 1,
+      linkPanel: linkPanel || '',
+    });
     data.checklist.push(item);
     saveData(data);
     return item;
@@ -528,12 +569,21 @@ const LocalStore = {
       item.done = !item.done;
       saveData(data);
     }
-    return item;
+    return item ? normalizeChecklistItem(item) : null;
   },
 
   async deleteChecklistItem(id) {
     const data = loadData();
     data.checklist = data.checklist.filter(t => t.id !== id);
+    saveData(data);
+  },
+
+  async reorderChecklistItems(orderedIds) {
+    const data = loadData();
+    orderedIds.forEach((id, i) => {
+      const item = data.checklist.find(t => t.id === id);
+      if (item) item.sortOrder = i + 1;
+    });
     saveData(data);
   },
 

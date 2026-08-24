@@ -1,4 +1,4 @@
--- 2/8  reset → schema → settings_extras → budget → vendors → rsvp_people → gifts → demo_seed
+-- 2/9  reset → schema → settings_extras → budget → vendors → rsvp_people → gifts → checklist_panel → demo_seed
 -- Rdzeń: ustawienia, plan dnia, FAQ, checklista, zaproszenia (gość = jeden rekord).
 
 CREATE TABLE wedding_settings (
@@ -41,7 +41,8 @@ CREATE TABLE checklist_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   text TEXT NOT NULL,
   done BOOLEAN NOT NULL DEFAULT FALSE,
-  sort_order INT NOT NULL DEFAULT 0
+  sort_order INT NOT NULL DEFAULT 0,
+  link_panel TEXT DEFAULT ''
 );
 
 CREATE TABLE guests (

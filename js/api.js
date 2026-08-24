@@ -243,11 +243,11 @@ const CloudStore = {
   },
 
   async getSchedule() {
-    const { data, error } = await supabaseClient.from('schedule_items').select('*').order('sort_order');
+    const { data, error } = await supabaseClient.from('schedule_items').select('*');
     if (error) throw error;
-    return (data || []).map((r, i) => normalizeScheduleItem({
+    return sortScheduleByTime((data || []).map((r, i) => normalizeScheduleItem({
       id: r.id, time: r.time, title: r.title, description: r.description, sort_order: r.sort_order,
-    }, i));
+    }, i)));
   },
 
   async addScheduleItem(item) {
@@ -256,7 +256,7 @@ const CloudStore = {
       time: item.time,
       title: item.title,
       description: item.description || '',
-      sort_order: item.sortOrder ?? existing.length + 1,
+      sort_order: existing.length + 1,
     }).select().single();
     if (error) throw error;
     return normalizeScheduleItem(data);
@@ -312,6 +312,12 @@ const CloudStore = {
     if (error) throw error;
   },
 
+  async reorderFaqItems(orderedIds) {
+    await Promise.all(orderedIds.map((id, i) =>
+      supabaseClient.from('faq_items').update({ sort_order: i + 1 }).eq('id', id)
+    ));
+  },
+
   async getVendors() {
     const { data, error } = await supabaseClient.from('vendors').select('*').order('name');
     if (error) throw error;
@@ -352,16 +358,21 @@ const CloudStore = {
   async getChecklist() {
     const { data, error } = await supabaseClient.from('checklist_items').select('*').order('sort_order');
     if (error) throw error;
-    return (data || []).map(r => ({ id: r.id, text: r.text, done: r.done }));
+    return (data || []).map((r, i) => normalizeChecklistItem(r, i));
   },
 
-  async addChecklistItem(text) {
+  async addChecklistItem(text, linkPanel = '') {
     const items = await this.getChecklist();
     const { data, error } = await supabaseClient.from('checklist_items')
-      .insert({ text, done: false, sort_order: items.length + 1 })
+      .insert({
+        text,
+        done: false,
+        sort_order: items.length + 1,
+        link_panel: linkPanel || '',
+      })
       .select().single();
     if (error) throw error;
-    return { id: data.id, text: data.text, done: data.done };
+    return normalizeChecklistItem(data);
   },
 
   async toggleChecklistItem(id) {
@@ -369,12 +380,18 @@ const CloudStore = {
     const { data, error } = await supabaseClient.from('checklist_items')
       .update({ done: !current.done }).eq('id', id).select().single();
     if (error) throw error;
-    return { id: data.id, text: data.text, done: data.done };
+    return normalizeChecklistItem(data);
   },
 
   async deleteChecklistItem(id) {
     const { error } = await supabaseClient.from('checklist_items').delete().eq('id', id);
     if (error) throw error;
+  },
+
+  async reorderChecklistItems(orderedIds) {
+    await Promise.all(orderedIds.map((id, i) =>
+      supabaseClient.from('checklist_items').update({ sort_order: i + 1 }).eq('id', id)
+    ));
   },
 
   async getBudgetItems() {
@@ -627,14 +644,16 @@ async function getFaq() { return store.getFaq(); }
 async function addFaqItem(i) { return store.addFaqItem(i); }
 async function updateFaqItem(id, u) { return store.updateFaqItem(id, u); }
 async function deleteFaqItem(id) { return store.deleteFaqItem(id); }
+async function reorderFaqItems(ids) { return store.reorderFaqItems(ids); }
 async function getVendors() { return store.getVendors(); }
 async function addVendor(v) { return store.addVendor(v); }
 async function updateVendor(id, u) { return store.updateVendor(id, u); }
 async function deleteVendor(id) { return store.deleteVendor(id); }
 async function getChecklist() { return store.getChecklist(); }
-async function addChecklistItem(t) { return store.addChecklistItem(t); }
+async function addChecklistItem(t, linkPanel) { return store.addChecklistItem(t, linkPanel); }
 async function toggleChecklistItem(id) { return store.toggleChecklistItem(id); }
 async function deleteChecklistItem(id) { return store.deleteChecklistItem(id); }
+async function reorderChecklistItems(ids) { return store.reorderChecklistItems(ids); }
 async function getGuestStats() { return store.getGuestStats(); }
 async function getDietSummary() { return store.getDietSummary(); }
 async function exportGuestsCSV() { return store.exportGuestsCSV(); }

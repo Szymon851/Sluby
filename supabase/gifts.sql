@@ -1,4 +1,4 @@
--- 7/8  reset → schema → settings_extras → budget → vendors → rsvp_people → gifts → demo_seed
+-- 7/9  reset → schema → settings_extras → budget → vendors → rsvp_people → gifts → checklist_panel → demo_seed
 -- Lista prezentów: zajęcie tylko z osobistego kodu zaproszenia.
 
 CREATE TABLE gift_items (

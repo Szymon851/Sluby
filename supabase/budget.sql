@@ -1,4 +1,4 @@
--- 4/8  reset → schema → settings_extras → budget → vendors → rsvp_people → gifts → demo_seed
+-- 4/9  reset → schema → settings_extras → budget → vendors → rsvp_people → gifts → checklist_panel → demo_seed
 -- Budżet: pozycje i raty.
 
 CREATE TABLE budget_items (

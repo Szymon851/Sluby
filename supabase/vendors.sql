@@ -1,4 +1,4 @@
--- 5/8  reset → schema → settings_extras → budget → vendors → rsvp_people → gifts → demo_seed
+-- 5/9  reset → schema → settings_extras → budget → vendors → rsvp_people → gifts → checklist_panel → demo_seed
 -- Dostawcy.
 
 CREATE TABLE vendors (

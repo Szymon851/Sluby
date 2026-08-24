@@ -255,7 +255,7 @@
         <!-- Harmonogram -->
         <div class="admin-panel" id="panel-schedule">
           <h2>Harmonogram dnia</h2>
-          <p style="color:var(--text-muted);margin-bottom:24px;">Edytuj plan dnia widoczny na stronie gości.</p>
+          <p style="color:var(--text-muted);margin-bottom:24px;">Pozycje sortują się automatycznie po godzinie.</p>
           <div class="table-wrapper">
             <div class="table-toolbar">
               <span></span>
@@ -267,7 +267,6 @@
                   <th>Godzina</th>
                   <th>Tytuł</th>
                   <th>Opis</th>
-                  <th>Kolejność</th>
                   <th>Akcje</th>
                 </tr>
               </thead>
@@ -279,24 +278,12 @@
         <!-- FAQ -->
         <div class="admin-panel" id="panel-faq">
           <h2>FAQ</h2>
-          <p style="color:var(--text-muted);margin-bottom:24px;">Pytania i odpowiedzi na stronie publicznej.</p>
-          <div class="table-wrapper">
-            <div class="table-toolbar">
-              <span></span>
-              <button type="button" class="btn btn-sm btn-primary" id="faq-add-btn">+ Pytanie</button>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Pytanie</th>
-                  <th>Odpowiedź</th>
-                  <th>Kolejność</th>
-                  <th>Akcje</th>
-                </tr>
-              </thead>
-              <tbody id="faq-table-body"></tbody>
-            </table>
+          <p style="color:var(--text-muted);margin-bottom:24px;">Przeciągnij wiersze, żeby zmienić kolejność na stronie.</p>
+          <div class="table-toolbar" style="margin-bottom:16px;">
+            <span></span>
+            <button type="button" class="btn btn-sm btn-primary" id="faq-add-btn">+ Pytanie</button>
           </div>
+          <div class="sortable-list" id="faq-sortable"></div>
         </div>
 
         <!-- Dostawcy -->
@@ -327,10 +314,23 @@
         <!-- Checklist -->
         <div class="admin-panel" id="panel-checklist">
           <h2>Checklist ślubny</h2>
-          <p style="color:var(--text-muted);margin-bottom:24px;">Śledź postępy w organizacji wesela.</p>
-          <div class="checklist" id="checklist"></div>
+          <p style="color:var(--text-muted);margin-bottom:24px;">Przeciągnij zadania. Opcjonalny skok otwiera wybraną zakładkę panelu.</p>
+          <div class="checklist sortable-list" id="checklist"></div>
           <div class="checklist-add">
             <input type="text" id="checklist-new" placeholder="Dodaj nowe zadanie...">
+            <select id="checklist-link-panel" aria-label="Skok do zakładki">
+              <option value="">Bez skoku</option>
+              <option value="guests">Goście</option>
+              <option value="diet">Dieta</option>
+              <option value="songs">Piosenki</option>
+              <option value="messages">Wiadomości</option>
+              <option value="gifts">Prezenty</option>
+              <option value="budget">Budżet</option>
+              <option value="schedule">Harmonogram</option>
+              <option value="faq">FAQ</option>
+              <option value="vendors">Dostawcy</option>
+              <option value="settings">Ustawienia</option>
+            </select>
             <button type="button" class="btn btn-primary btn-sm" id="checklist-add-btn">Dodaj</button>
           </div>
         </div>
@@ -585,15 +585,9 @@
       <h3 id="schedule-modal-title">Dodaj pozycję</h3>
       <form id="schedule-form">
         <input type="hidden" id="schedule-edit-id">
-        <div class="form-row">
-          <div class="form-group">
-            <label for="schedule-time">Godzina</label>
-            <input type="text" id="schedule-time" required placeholder="15:00">
-          </div>
-          <div class="form-group">
-            <label for="schedule-order">Kolejność</label>
-            <input type="number" id="schedule-order" min="1" value="1">
-          </div>
+        <div class="form-group">
+          <label for="schedule-time">Godzina</label>
+          <input type="time" id="schedule-time" required>
         </div>
         <div class="form-group">
           <label for="schedule-title">Tytuł</label>
@@ -624,10 +618,6 @@
         <div class="form-group">
           <label for="faq-answer">Odpowiedź</label>
           <textarea id="faq-answer" rows="3" required></textarea>
-        </div>
-        <div class="form-group">
-          <label for="faq-order">Kolejność</label>
-          <input type="number" id="faq-order" min="1" value="1">
         </div>
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary btn-sm" id="faq-cancel">Anuluj</button>

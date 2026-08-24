@@ -1,4 +1,4 @@
--- 8/8  reset → schema → settings_extras → budget → vendors → rsvp_people → gifts → demo_seed
+-- 9/9  reset → schema → settings_extras → budget → vendors → rsvp_people → gifts → checklist_panel → demo_seed
 -- Przykładowe dane. Nadpisuje ustawienia i wstawia gości, plan, FAQ, budżet, dostawców, prezenty.
 -- Kody testowe: DEMO-AAAA, DEMO-PARA, DEMO-BABCIA, DEMO-KUBA, DEMO-OLA, DEMO-TOME, DEMO-MARE, DEMO-NATA
 
@@ -54,15 +54,16 @@ INSERT INTO faq_items (question, answer, sort_order) VALUES
   ('Jaki jest dress code?', 'Elegancki strój wieczorowy. Unikaj bieli i bardzo intensywnej czerwieni.', 5),
   ('Czy mogę wziąć plus one?', 'Liczba miejsc wynika z zaproszenia — sprawdź w RSVP po wpisaniu kodu.', 6);
 
-INSERT INTO checklist_items (text, done, sort_order) VALUES
-  ('Zarezerwować salę weselną', true, 1),
-  ('Wybrać fotografa i kamerzystę', true, 2),
-  ('Zamówić suknię i garnitur', true, 3),
-  ('Wysłać zaproszenia', false, 4),
-  ('Ustalić menu z cateringiem', false, 5),
-  ('Zamówić tort', false, 6),
-  ('Zarezerwować zespół / DJ', false, 7),
-  ('Przygotować plan stołów', false, 8);
+INSERT INTO checklist_items (text, done, sort_order, link_panel) VALUES
+  ('Zarezerwować salę weselną', true, 1, 'vendors'),
+  ('Wybrać fotografa i kamerzystę', true, 2, 'vendors'),
+  ('Zamówić suknię i garnitur', true, 3, ''),
+  ('Wysłać zaproszenia', false, 4, 'guests'),
+  ('Ustalić menu z cateringiem', false, 5, 'diet'),
+  ('Zamówić tort', false, 6, 'vendors'),
+  ('Zarezerwować zespół / DJ', false, 7, 'vendors'),
+  ('Uzupełnić listę prezentów', false, 8, 'gifts'),
+  ('Przygotować plan stołów', false, 9, '');
 
 INSERT INTO guests (
   name, email, phone, invite_code, group_name, max_guests,

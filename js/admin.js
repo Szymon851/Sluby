@@ -244,10 +244,20 @@ async function renderChecklist() {
   if (!container) return;
 
   const items = await getChecklist();
+  const panelLabels = {
+    guests: 'Goście', diet: 'Dieta', songs: 'Piosenki', messages: 'Wiadomości',
+    gifts: 'Prezenty', budget: 'Budżet', schedule: 'Harmonogram', faq: 'FAQ',
+    vendors: 'Dostawcy', settings: 'Ustawienia', dashboard: 'Przegląd',
+  };
+
   container.innerHTML = items.map(item => `
-    <div class="checklist-item ${item.done ? 'done' : ''}">
+    <div class="checklist-item sortable-item ${item.done ? 'done' : ''}" draggable="true" data-id="${item.id}">
+      <span class="drag-handle" title="Przeciągnij" aria-hidden="true">⋮⋮</span>
       <input type="checkbox" id="${item.id}" ${item.done ? 'checked' : ''} data-id="${item.id}">
       <label for="${item.id}">${escapeHtml(item.text)}</label>
+      ${item.linkPanel
+        ? `<button type="button" class="btn btn-sm btn-secondary checklist-jump" data-panel="${escapeHtml(item.linkPanel)}" title="Idź do: ${panelLabels[item.linkPanel] || item.linkPanel}">→</button>`
+        : ''}
       <button type="button" data-delete="${item.id}" class="checklist-delete" aria-label="Usuń">✕</button>
     </div>
   `).join('');
@@ -266,17 +276,69 @@ async function renderChecklist() {
       await renderChecklist();
     });
   });
+
+  container.querySelectorAll('.checklist-jump').forEach(btn => {
+    btn.addEventListener('click', () => goToAdminPanel(btn.dataset.panel));
+  });
+
+  enableSortable(container, async (orderedIds) => {
+    await reorderChecklistItems(orderedIds);
+  });
 }
 
 function initChecklistAdd() {
   document.getElementById('checklist-add-btn')?.addEventListener('click', async () => {
     const input = document.getElementById('checklist-new');
+    const linkSelect = document.getElementById('checklist-link-panel');
     const text = input.value.trim();
     if (text) {
-      await addChecklistItem(text);
+      await addChecklistItem(text, linkSelect?.value || '');
       input.value = '';
+      if (linkSelect) linkSelect.value = '';
       await renderChecklist();
     }
+  });
+}
+
+function goToAdminPanel(panel) {
+  if (!panel) return;
+  document.querySelector(`.admin-nav button[data-panel="${panel}"]`)?.click();
+}
+
+function enableSortable(container, onReorder) {
+  let dragEl = null;
+  container.querySelectorAll('.sortable-item').forEach(item => {
+    item.addEventListener('dragstart', (e) => {
+      if (e.target.closest('button, input, a, select, textarea, label')) {
+        e.preventDefault();
+        return;
+      }
+      dragEl = item;
+      item.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', item.dataset.id || '');
+    });
+    item.addEventListener('dragend', async () => {
+      item.classList.remove('dragging');
+      container.querySelectorAll('.sortable-item').forEach(el => el.classList.remove('drag-over'));
+      if (!dragEl) return;
+      const orderedIds = [...container.querySelectorAll('.sortable-item')].map(el => el.dataset.id);
+      dragEl = null;
+      if (onReorder) await onReorder(orderedIds);
+    });
+    item.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const over = e.currentTarget;
+      if (!dragEl || over === dragEl) return;
+      over.classList.add('drag-over');
+      const rect = over.getBoundingClientRect();
+      const after = e.clientY > rect.top + rect.height / 2;
+      if (after) over.after(dragEl);
+      else over.before(dragEl);
+    });
+    item.addEventListener('dragleave', (e) => {
+      e.currentTarget.classList.remove('drag-over');
+    });
   });
 }
 
@@ -996,10 +1058,9 @@ function initSchedulePanel() {
     e.preventDefault();
     const id = document.getElementById('schedule-edit-id').value;
     const payload = {
-      time: document.getElementById('schedule-time').value.trim(),
+      time: document.getElementById('schedule-time').value,
       title: document.getElementById('schedule-title').value.trim(),
       description: document.getElementById('schedule-desc').value.trim(),
-      sortOrder: parseInt(document.getElementById('schedule-order').value, 10) || 1,
     };
     if (id) await updateScheduleItem(id, payload);
     else await addScheduleItem(payload);
@@ -1011,10 +1072,9 @@ function initSchedulePanel() {
 function openScheduleModal(item) {
   document.getElementById('schedule-modal-title').textContent = item ? 'Edytuj pozycję' : 'Dodaj pozycję';
   document.getElementById('schedule-edit-id').value = item?.id || '';
-  document.getElementById('schedule-time').value = item?.time || '';
+  document.getElementById('schedule-time').value = toTimeInputValue(item?.time || '');
   document.getElementById('schedule-title').value = item?.title || '';
   document.getElementById('schedule-desc').value = item?.description || '';
-  document.getElementById('schedule-order').value = item?.sortOrder ?? 1;
   openModal('schedule-modal');
 }
 
@@ -1027,13 +1087,12 @@ async function renderScheduleAdmin() {
       <td>${escapeHtml(item.time)}</td>
       <td><strong>${escapeHtml(item.title)}</strong></td>
       <td>${escapeHtml(item.description || '')}</td>
-      <td>${item.sortOrder}</td>
       <td class="actions">
         <button type="button" class="btn btn-sm btn-secondary" data-action="edit" data-id="${item.id}">Edytuj</button>
         <button type="button" class="btn btn-sm btn-danger" data-action="del" data-id="${item.id}">Usuń</button>
       </td>
     </tr>
-  `).join('') : '<tr><td colspan="5" style="color:var(--text-muted);padding:20px;">Brak pozycji.</td></tr>';
+  `).join('') : '<tr><td colspan="4" style="color:var(--text-muted);padding:20px;">Brak pozycji.</td></tr>';
 
   tbody.querySelectorAll('button').forEach(btn => {
     btn.addEventListener('click', async () => {
@@ -1056,7 +1115,6 @@ function initFaqPanel() {
     const payload = {
       question: document.getElementById('faq-question').value.trim(),
       answer: document.getElementById('faq-answer').value.trim(),
-      sortOrder: parseInt(document.getElementById('faq-order').value, 10) || 1,
     };
     if (id) await updateFaqItem(id, payload);
     else await addFaqItem(payload);
@@ -1070,27 +1128,28 @@ function openFaqModal(item) {
   document.getElementById('faq-edit-id').value = item?.id || '';
   document.getElementById('faq-question').value = item?.question || '';
   document.getElementById('faq-answer').value = item?.answer || '';
-  document.getElementById('faq-order').value = item?.sortOrder ?? 1;
   openModal('faq-modal');
 }
 
 async function renderFaqAdmin() {
-  const tbody = document.getElementById('faq-table-body');
-  if (!tbody) return;
+  const container = document.getElementById('faq-sortable');
+  if (!container) return;
   const items = await getFaq();
-  tbody.innerHTML = items.length ? items.map(item => `
-    <tr>
-      <td><strong>${escapeHtml(item.question)}</strong></td>
-      <td>${escapeHtml(item.answer)}</td>
-      <td>${item.sortOrder}</td>
-      <td class="actions">
+  container.innerHTML = items.length ? items.map(item => `
+    <div class="sortable-item faq-sortable-item" draggable="true" data-id="${item.id}">
+      <span class="drag-handle" title="Przeciągnij" aria-hidden="true">⋮⋮</span>
+      <div class="sortable-body">
+        <strong>${escapeHtml(item.question)}</strong>
+        <p>${escapeHtml(item.answer)}</p>
+      </div>
+      <div class="actions">
         <button type="button" class="btn btn-sm btn-secondary" data-action="edit" data-id="${item.id}">Edytuj</button>
         <button type="button" class="btn btn-sm btn-danger" data-action="del" data-id="${item.id}">Usuń</button>
-      </td>
-    </tr>
-  `).join('') : '<tr><td colspan="4" style="color:var(--text-muted);padding:20px;">Brak pytań.</td></tr>';
+      </div>
+    </div>
+  `).join('') : '<p style="color:var(--text-muted);">Brak pytań.</p>';
 
-  tbody.querySelectorAll('button').forEach(btn => {
+  container.querySelectorAll('button').forEach(btn => {
     btn.addEventListener('click', async () => {
       const item = items.find(i => i.id === btn.dataset.id);
       if (btn.dataset.action === 'edit' && item) openFaqModal(item);
@@ -1099,6 +1158,10 @@ async function renderFaqAdmin() {
         await renderFaqAdmin();
       }
     });
+  });
+
+  enableSortable(container, async (orderedIds) => {
+    await reorderFaqItems(orderedIds);
   });
 }
 
