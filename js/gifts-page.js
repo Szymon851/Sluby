@@ -88,7 +88,7 @@ async function renderGiftList(guest) {
     const mine = guest && g.claimedByGuestId === guest.id;
     let status = '<span class="gift-status available">Wolne</span>';
     if (claimed) {
-      status = `<span class="gift-status taken">Zajęte${g.claimerName ? ' — ' + escapeHtml(g.claimerName) : ''}</span>`;
+      status = '<span class="gift-status taken">Zajęte</span>';
     }
     let actions = '';
     if (guest) {
@@ -98,7 +98,7 @@ async function renderGiftList(guest) {
         actions = `<button type="button" class="btn btn-sm btn-secondary" data-release="${g.id}">Zrezygnuj</button>`;
       }
     }
-    const link = g.url
+    const link = (!claimed && g.url)
       ? `<a href="${escapeHtml(g.url)}" target="_blank" rel="noopener" class="gift-link">Zobacz produkt →</a>`
       : '';
     const notes = g.notes ? `<p class="gift-notes">${escapeHtml(g.notes)}</p>` : '';
