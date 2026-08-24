@@ -1,12 +1,5 @@
 -- 6/7  reset → schema → settings_extras → budget → vendors → rsvp_people → demo_seed
--- Osoby na zaproszeniu + piosenka (wykonawca / tytuł / dedykacja) + nowe RPC.
-
-ALTER TABLE guests ADD COLUMN song_artist TEXT DEFAULT '';
-ALTER TABLE guests ADD COLUMN song_title TEXT DEFAULT '';
-ALTER TABLE guests ADD COLUMN song_dedication TEXT DEFAULT '';
-
-UPDATE guests SET song_title = song_request
-WHERE COALESCE(song_request, '') <> '';
+-- Osoby na zaproszeniu, piosenka per osoba, nowe RPC.
 
 CREATE TABLE guest_people (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -15,15 +8,19 @@ CREATE TABLE guest_people (
   attending BOOLEAN NOT NULL DEFAULT TRUE,
   diet TEXT DEFAULT '',
   allergies TEXT DEFAULT '',
+  song_artist TEXT DEFAULT '',
+  song_title TEXT DEFAULT '',
   sort_order INT NOT NULL DEFAULT 0
 );
 
 CREATE INDEX idx_guest_people_guest ON guest_people (guest_id);
 
-INSERT INTO guest_people (guest_id, display_name, attending, diet, allergies, sort_order)
+INSERT INTO guest_people (guest_id, display_name, attending, diet, allergies, song_artist, song_title, sort_order)
 SELECT g.id, g.name, TRUE,
   COALESCE(g.diet[1], ''),
   COALESCE(g.allergies, ''),
+  '',
+  COALESCE(g.song_request, ''),
   1
 FROM guests g
 WHERE g.status = 'confirmed';
@@ -47,6 +44,8 @@ BEGIN
     'attending', p.attending,
     'diet', COALESCE(p.diet, ''),
     'allergies', COALESCE(p.allergies, ''),
+    'songArtist', COALESCE(p.song_artist, ''),
+    'songTitle', COALESCE(p.song_title, ''),
     'sortOrder', p.sort_order
   ) ORDER BY p.sort_order), '[]'::json)
   INTO people
@@ -60,24 +59,19 @@ BEGIN
     'status', g.status,
     'confirmedGuests', g.confirmed_guests,
     'message', COALESCE(g.message, ''),
-    'songArtist', COALESCE(g.song_artist, ''),
-    'songTitle', COALESCE(g.song_title, ''),
-    'songDedication', COALESCE(g.song_dedication, ''),
     'people', people
   );
 END;
 $$;
 
 DROP FUNCTION IF EXISTS submit_rsvp(TEXT, BOOLEAN, INT, TEXT[], TEXT, TEXT, TEXT);
+DROP FUNCTION IF EXISTS submit_rsvp(TEXT, BOOLEAN, JSON, TEXT, TEXT, TEXT, TEXT);
 
 CREATE FUNCTION submit_rsvp(
   p_code TEXT,
   p_attending BOOLEAN,
   p_people JSON,
-  p_message TEXT,
-  p_song_artist TEXT,
-  p_song_title TEXT,
-  p_song_dedication TEXT
+  p_message TEXT
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -102,21 +96,20 @@ BEGIN
     status = CASE WHEN p_attending THEN 'confirmed' ELSE 'declined' END,
     confirmed_guests = CASE WHEN p_attending THEN n ELSE 0 END,
     message = COALESCE(p_message, ''),
-    song_artist = COALESCE(p_song_artist, ''),
-    song_title = COALESCE(p_song_title, ''),
-    song_dedication = COALESCE(p_song_dedication, ''),
     responded_at = NOW()
   WHERE id = g.id;
 
   DELETE FROM guest_people WHERE guest_id = g.id;
 
   IF p_attending THEN
-    INSERT INTO guest_people (guest_id, display_name, attending, diet, allergies, sort_order)
+    INSERT INTO guest_people (guest_id, display_name, attending, diet, allergies, song_artist, song_title, sort_order)
     SELECT g.id,
       COALESCE(elem->>'name', ''),
       TRUE,
       COALESCE(elem->>'diet', ''),
       COALESCE(elem->>'allergies', ''),
+      COALESCE(elem->>'songArtist', ''),
+      COALESCE(elem->>'songTitle', ''),
       (ord::INT)
     FROM json_array_elements(COALESCE(p_people::json, '[]'::json)) WITH ORDINALITY AS t(elem, ord);
   END IF;
@@ -127,7 +120,7 @@ $$;
 
 GRANT ALL ON guest_people TO authenticated;
 GRANT EXECUTE ON FUNCTION get_guest_by_code(TEXT) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION submit_rsvp(TEXT, BOOLEAN, JSON, TEXT, TEXT, TEXT, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION submit_rsvp(TEXT, BOOLEAN, JSON, TEXT) TO anon, authenticated;
 
 ALTER TABLE guest_people ENABLE ROW LEVEL SECURITY;
 

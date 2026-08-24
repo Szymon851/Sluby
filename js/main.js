@@ -390,6 +390,7 @@ async function initRSVP() {
     for (let i = 0; i < count; i++) {
       const p = list[i] || {};
       const defaultName = i === 0 && !p.name ? (currentGuest?.name || '') : (p.name || '');
+      const wantSong = !!(p.songArtist || p.songTitle);
       html += `
         <div class="rsvp-person-card">
           <p class="rsvp-person-label">Osoba ${i + 1}</p>
@@ -405,6 +406,18 @@ async function initRSVP() {
             <label>Alergie i nietolerancje</label>
             <input type="text" class="rsvp-person-allergies" value="${escapeHtml(p.allergies || '')}" placeholder="np. orzechy, laktoza">
           </div>
+          <div class="form-group">
+            <label class="checkbox-item">
+              <input type="checkbox" class="rsvp-person-want-song" ${wantSong ? 'checked' : ''}>
+              Chcę dedykować piosenkę
+            </label>
+            <div class="rsvp-person-song-fields" ${wantSong ? '' : 'hidden'}>
+              <div class="form-row">
+                <input type="text" class="rsvp-person-song-artist" placeholder="Wykonawca" value="${escapeHtml(p.songArtist || '')}">
+                <input type="text" class="rsvp-person-song-title" placeholder="Tytuł" value="${escapeHtml(p.songTitle || '')}">
+              </div>
+            </div>
+          </div>
         </div>
       `;
     }
@@ -412,11 +425,16 @@ async function initRSVP() {
   }
 
   function collectPeople() {
-    return [...peopleList.querySelectorAll('.rsvp-person-card')].map(card => ({
-      name: card.querySelector('.rsvp-person-name').value.trim(),
-      diet: card.querySelector('.rsvp-person-diet').value,
-      allergies: card.querySelector('.rsvp-person-allergies').value.trim(),
-    }));
+    return [...peopleList.querySelectorAll('.rsvp-person-card')].map(card => {
+      const wantSong = card.querySelector('.rsvp-person-want-song')?.checked;
+      return {
+        name: card.querySelector('.rsvp-person-name').value.trim(),
+        diet: card.querySelector('.rsvp-person-diet').value,
+        allergies: card.querySelector('.rsvp-person-allergies').value.trim(),
+        songArtist: wantSong ? card.querySelector('.rsvp-person-song-artist').value.trim() : '',
+        songTitle: wantSong ? card.querySelector('.rsvp-person-song-title').value.trim() : '',
+      };
+    });
   }
 
   function showThanks(guest) {
@@ -459,10 +477,6 @@ async function initRSVP() {
     const count = people.length || (guest.confirmedGuests || 1);
     guestCountSelect.value = String(Math.min(Math.max(count, 1), guest.maxGuests));
     renderPeopleFields(parseInt(guestCountSelect.value, 10), people);
-
-    document.getElementById('rsvp-song-artist').value = guest.songArtist || '';
-    document.getElementById('rsvp-song-title').value = guest.songTitle || '';
-    document.getElementById('rsvp-song-dedication').value = guest.songDedication || '';
     document.getElementById('rsvp-note').value = guest.message || '';
   }
 
@@ -488,6 +502,12 @@ async function initRSVP() {
   guestCountSelect?.addEventListener('change', () => {
     const n = parseInt(guestCountSelect.value, 10) || 1;
     renderPeopleFields(n, collectPeople());
+  });
+
+  peopleList?.addEventListener('change', (e) => {
+    if (!e.target.classList.contains('rsvp-person-want-song')) return;
+    const fields = e.target.closest('.rsvp-person-card')?.querySelector('.rsvp-person-song-fields');
+    if (fields) fields.hidden = !e.target.checked;
   });
 
   verifyBtn?.addEventListener('click', async () => {
@@ -554,9 +574,6 @@ async function initRSVP() {
       const result = await submitRsvp(currentGuest.code, {
         attending,
         people,
-        songArtist: document.getElementById('rsvp-song-artist').value.trim(),
-        songTitle: document.getElementById('rsvp-song-title').value.trim(),
-        songDedication: document.getElementById('rsvp-song-dedication').value.trim(),
         message: document.getElementById('rsvp-note').value.trim(),
       });
 

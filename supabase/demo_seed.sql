@@ -66,68 +66,59 @@ INSERT INTO checklist_items (text, done, sort_order) VALUES
 INSERT INTO guests (
   name, email, phone, invite_code, group_name, max_guests,
   status, confirmed_guests, diet, allergies, message,
-  song_artist, song_title, song_dedication,
   responded_at, invitation_sent_at
 ) VALUES
   (
     'Kasia Nowak', 'kasia.nowak@example.com', '+48 501 111 222', 'DEMO-AAAA', 'Przyjaciele',
     1, 'confirmed', 1, ARRAY['vegetarian']::TEXT[], '', 'Nie możemy się doczekać!',
-    'ABBA', 'Dancing Queen', '',
     NOW() - INTERVAL '3 days', NOW() - INTERVAL '10 days'
   ),
   (
     'Piotr i Magda Kowalscy', 'kowalscy@example.com', '+48 502 333 444', 'DEMO-PARA', 'Rodzina',
     2, 'confirmed', 2, ARRAY['glutenFree']::TEXT[], 'Magda — orzechy', 'Będziemy we dwoje.',
-    'Ed Sheeran', 'Thinking Out Loud', 'dla nas',
     NOW() - INTERVAL '2 days', NOW() - INTERVAL '10 days'
   ),
   (
     'Babcia Halina', 'halina@example.com', NULL, 'DEMO-BABCIA', 'Rodzina',
     1, 'confirmed', 1, '{}'::TEXT[], '', 'Całuję mocno',
-    '', '', '',
     NOW() - INTERVAL '5 days', NOW() - INTERVAL '12 days'
   ),
   (
     'Kuba Wiśniewski', 'kuba.w@example.com', '+48 503 555 666', 'DEMO-KUBA', 'Przyjaciele',
     1, 'declined', 0, '{}'::TEXT[], '', 'Niestety jestem za granicą — trzymajcie się!',
-    '', '', '',
     NOW() - INTERVAL '1 day', NOW() - INTERVAL '9 days'
   ),
   (
     'Ola Zielińska', 'ola.z@example.com', '+48 504 777 888', 'DEMO-OLA', 'Praca',
     2, 'pending', 0, '{}'::TEXT[], '', '',
-    '', '', '',
     NULL, NOW() - INTERVAL '4 days'
   ),
   (
     'Tomek i Asia', NULL, '+48 505 999 000', 'DEMO-TOME', 'Studia',
     2, 'pending', 0, '{}'::TEXT[], '', '',
-    '', '', '',
     NULL, NULL
   ),
   (
     'Wujek Marek', 'marek@example.com', '+48 506 121 212', 'DEMO-MARE', 'Rodzina',
     1, 'confirmed', 1, ARRAY['kids']::TEXT[], '', '',
-    'Earth, Wind & Fire', 'September', '',
     NOW() - INTERVAL '6 days', NOW() - INTERVAL '11 days'
   ),
   (
     'Natalia B.', 'natalia@example.com', NULL, 'DEMO-NATA', 'Przyjaciele',
     1, 'pending', 0, '{}'::TEXT[], '', '',
-    '', '', '',
     NULL, NOW() - INTERVAL '3 days'
   );
 
-INSERT INTO guest_people (guest_id, display_name, attending, diet, allergies, sort_order)
-SELECT g.id, p.display_name, TRUE, p.diet, p.allergies, p.sort_order
+INSERT INTO guest_people (guest_id, display_name, attending, diet, allergies, song_artist, song_title, sort_order)
+SELECT g.id, p.display_name, TRUE, p.diet, p.allergies, p.song_artist, p.song_title, p.sort_order
 FROM guests g
 JOIN (VALUES
-  ('DEMO-AAAA', 'Kasia Nowak', 'vegetarian', '', 1),
-  ('DEMO-PARA', 'Piotr Kowalski', '', '', 1),
-  ('DEMO-PARA', 'Magda Kowalska', 'glutenFree', 'orzechy', 2),
-  ('DEMO-BABCIA', 'Babcia Halina', '', '', 1),
-  ('DEMO-MARE', 'Wujek Marek', 'kids', '', 1)
-) AS p(code, display_name, diet, allergies, sort_order)
+  ('DEMO-AAAA', 'Kasia Nowak', 'vegetarian', '', 'ABBA', 'Dancing Queen', 1),
+  ('DEMO-PARA', 'Piotr Kowalski', '', '', 'Ed Sheeran', 'Thinking Out Loud', 1),
+  ('DEMO-PARA', 'Magda Kowalska', 'glutenFree', 'orzechy', '', '', 2),
+  ('DEMO-BABCIA', 'Babcia Halina', '', '', '', '', 1),
+  ('DEMO-MARE', 'Wujek Marek', 'kids', '', 'Earth, Wind & Fire', 'September', 1)
+) AS p(code, display_name, diet, allergies, song_artist, song_title, sort_order)
 ON g.invite_code = p.code;
 
 INSERT INTO vendors (name, role, phone, email, notes, contract_date) VALUES

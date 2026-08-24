@@ -186,21 +186,24 @@ async function computeDietSummary(getGuestsFn) {
   return summary;
 }
 
+function personSong(p) {
+  return [p.songArtist, p.songTitle].filter(Boolean).join(' — ');
+}
+
 function buildGuestsCSV(guests) {
   const headers = ['Zaproszenie', 'Osoba', 'Email', 'Telefon', 'Kod', 'Grupa', 'Status', 'Zaproszenie wysłane', 'Dieta', 'Alergie', 'Wiadomość', 'Piosenka', 'Data odpowiedzi'];
   const rows = [];
   guests.forEach(g => {
     const people = (g.people || []).filter(p => p.attending);
-    const song = [g.songArtist, g.songTitle].filter(Boolean).join(' — ');
     const status = g.status === 'confirmed' ? 'Potwierdzone' : g.status === 'declined' ? 'Odmowa' : 'Oczekujące';
     const sent = g.invitationSentAt ? new Date(g.invitationSentAt).toLocaleDateString('pl-PL') : 'Nie';
     const responded = g.respondedAt ? new Date(g.respondedAt).toLocaleDateString('pl-PL') : '';
     if (people.length) {
       people.forEach(p => {
-        rows.push([g.name, p.name, g.email, g.phone, g.code, g.group, status, sent, p.diet || '', p.allergies || '', g.message, song, responded]);
+        rows.push([g.name, p.name, g.email, g.phone, g.code, g.group, status, sent, p.diet || '', p.allergies || '', g.message, personSong(p), responded]);
       });
     } else {
-      rows.push([g.name, '', g.email, g.phone, g.code, g.group, status, sent, (g.diet || []).join(', '), g.allergies, g.message, song, responded]);
+      rows.push([g.name, '', g.email, g.phone, g.code, g.group, status, sent, (g.diet || []).join(', '), g.allergies, g.message, '', responded]);
     }
   });
   return [headers, ...rows]
@@ -258,6 +261,8 @@ function normalizePerson(p, index = 0) {
     attending: p.attending !== false,
     diet: p.diet || '',
     allergies: p.allergies || '',
+    songArtist: p.songArtist || p.song_artist || '',
+    songTitle: p.songTitle || p.song_title || '',
     sortOrder: p.sortOrder ?? p.sort_order ?? index + 1,
   };
 }
@@ -278,9 +283,6 @@ function normalizeGuest(g) {
     diet: g.diet || [],
     allergies: g.allergies || '',
     message: g.message || '',
-    songArtist: g.songArtist || g.song_artist || '',
-    songTitle: g.songTitle || g.song_title || g.songRequest || g.song_request || '',
-    songDedication: g.songDedication || g.song_dedication || '',
     people,
     respondedAt: g.respondedAt || g.responded_at || null,
     invitationSentAt: g.invitationSentAt || g.invitation_sent_at || null,
@@ -356,9 +358,6 @@ const LocalStore = {
       diet: [],
       allergies: '',
       message: '',
-      songArtist: '',
-      songTitle: '',
-      songDedication: '',
       people: [],
       respondedAt: null,
       invitationSentAt: null,
@@ -399,9 +398,6 @@ const LocalStore = {
       status: rsvpData.attending ? 'confirmed' : 'declined',
       confirmedGuests: people.length,
       message: rsvpData.message || '',
-      songArtist: rsvpData.songArtist || '',
-      songTitle: rsvpData.songTitle || '',
-      songDedication: rsvpData.songDedication || '',
       people,
       respondedAt: new Date().toISOString(),
     });

@@ -611,6 +611,8 @@ body.personalized .hero {
   margin-bottom: 8px;
 }
 
+.rsvp-person-song-fields { margin-top: 10px; }
+
 .rsvp-thanks { text-align: center; margin-bottom: 20px; }
 .rsvp-thanks h3 { font-family: var(--font-heading); margin-bottom: 8px; }
 .rsvp-edit-hint { color: var(--text-muted); font-size: 0.9375rem; margin-top: 12px; }

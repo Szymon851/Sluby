@@ -20,9 +20,6 @@ function mapGuestFromDb(row) {
     diet: row.diet || [],
     allergies: row.allergies || '',
     message: row.message || '',
-    song_artist: row.song_artist || '',
-    song_title: row.song_title || '',
-    song_dedication: row.song_dedication || '',
     guest_people: row.guest_people || row.people || [],
     responded_at: row.responded_at,
     invitation_sent_at: row.invitation_sent_at,
@@ -42,9 +39,6 @@ function mapGuestToDb(g) {
     diet: g.diet || [],
     allergies: g.allergies || '',
     message: g.message || '',
-    song_artist: g.songArtist || '',
-    song_title: g.songTitle || '',
-    song_dedication: g.songDedication || '',
     responded_at: g.respondedAt || null,
     invitation_sent_at: g.invitationSentAt || null,
   };
@@ -171,9 +165,6 @@ const CloudStore = {
       status: data.status,
       confirmed_guests: data.confirmedGuests,
       message: data.message || '',
-      song_artist: data.songArtist || '',
-      song_title: data.songTitle || '',
-      song_dedication: data.songDedication || '',
       people: data.people || [],
     });
   },
@@ -221,9 +212,6 @@ const CloudStore = {
     if (updates.diet !== undefined) dbUpdates.diet = updates.diet;
     if (updates.allergies !== undefined) dbUpdates.allergies = updates.allergies;
     if (updates.message !== undefined) dbUpdates.message = updates.message;
-    if (updates.songArtist !== undefined) dbUpdates.song_artist = updates.songArtist;
-    if (updates.songTitle !== undefined) dbUpdates.song_title = updates.songTitle;
-    if (updates.songDedication !== undefined) dbUpdates.song_dedication = updates.songDedication;
     if (updates.respondedAt !== undefined) dbUpdates.responded_at = updates.respondedAt;
     if (updates.invitationSentAt !== undefined) dbUpdates.invitation_sent_at = updates.invitationSentAt;
 
@@ -247,9 +235,6 @@ const CloudStore = {
       p_attending: rsvpData.attending,
       p_people: rsvpData.people || [],
       p_message: rsvpData.message || '',
-      p_song_artist: rsvpData.songArtist || '',
-      p_song_title: rsvpData.songTitle || '',
-      p_song_dedication: rsvpData.songDedication || '',
     });
     if (error) throw error;
     if (!data?.success) return { success: false, error: data?.error || 'Błąd RSVP.' };

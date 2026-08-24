@@ -322,12 +322,12 @@ async function renderDietSummary() {
 async function renderSongsList() {
   const el = document.getElementById('songs-list');
   if (!el) return;
-  const songs = (await getGuests()).filter(g => g.songTitle || g.songArtist);
+  const songs = flattenPeople(await getGuests())
+    .filter(({ person }) => person.songTitle || person.songArtist);
   el.innerHTML = songs.length
-    ? songs.map(g => {
-        const track = [g.songArtist, g.songTitle].filter(Boolean).join(' — ');
-        const ded = g.songDedication ? ` <span style="color:var(--text-muted);">(${escapeHtml(g.songDedication)})</span>` : '';
-        return `<div class="recent-row"><strong>${escapeHtml(g.name)}</strong><span> — ${escapeHtml(track)}${ded}</span></div>`;
+    ? songs.map(({ person }) => {
+        const track = personSong(person);
+        return `<div class="recent-row"><strong>${escapeHtml(person.name)}</strong><span> — ${escapeHtml(track)}</span></div>`;
       }).join('')
     : '<p style="color:var(--text-muted);">Brak próśb o piosenkę.</p>';
 }
