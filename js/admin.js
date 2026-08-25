@@ -111,7 +111,7 @@ function getDefaultAdminNav() {
     {
       id: 'guests',
       label: 'Goście',
-      panels: ['dashboard', 'schedule', 'faq', 'gifts', 'guests', 'diet', 'songs', 'messages', 'settings'],
+      panels: ['dashboard', 'schedule', 'gifts', 'faq', 'guests', 'diet', 'songs', 'messages', 'settings'],
     },
     {
       id: 'org',
