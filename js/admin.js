@@ -258,6 +258,7 @@ async function renderChecklist() {
       ${item.linkPanel
         ? `<button type="button" class="btn btn-sm btn-secondary checklist-jump" data-panel="${escapeHtml(item.linkPanel)}" title="Idź do: ${panelLabels[item.linkPanel] || item.linkPanel}">→</button>`
         : ''}
+      <button type="button" class="btn btn-sm btn-secondary" data-edit="${item.id}">Edytuj</button>
       <button type="button" data-delete="${item.id}" class="checklist-delete" aria-label="Usuń">✕</button>
     </div>
   `).join('');
@@ -267,6 +268,13 @@ async function renderChecklist() {
       await toggleChecklistItem(cb.dataset.id);
       await renderChecklist();
       await renderDashboard();
+    });
+  });
+
+  container.querySelectorAll('[data-edit]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = items.find(i => i.id === btn.dataset.edit);
+      if (item) openChecklistModal(item);
     });
   });
 
@@ -298,6 +306,25 @@ function initChecklistAdd() {
       await renderChecklist();
     }
   });
+
+  document.getElementById('checklist-cancel')?.addEventListener('click', () => closeModal('checklist-modal'));
+  document.getElementById('checklist-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('checklist-edit-id').value;
+    const text = document.getElementById('checklist-edit-text').value.trim();
+    const linkPanel = document.getElementById('checklist-edit-link').value || '';
+    if (!id || !text) return;
+    await updateChecklistItem(id, { text, linkPanel });
+    closeModal('checklist-modal');
+    await renderChecklist();
+  });
+}
+
+function openChecklistModal(item) {
+  document.getElementById('checklist-edit-id').value = item.id;
+  document.getElementById('checklist-edit-text').value = item.text || '';
+  document.getElementById('checklist-edit-link').value = item.linkPanel || '';
+  openModal('checklist-modal');
 }
 
 function goToAdminPanel(panel) {

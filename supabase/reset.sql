@@ -1,4 +1,4 @@
--- 1/9  reset → schema → settings_extras → budget → vendors → rsvp_people → gifts → checklist_panel → demo_seed
+-- 1/9  reset → schema → settings_extras → budget → vendors → rsvp_people → gifts → checklist_panel → [demo_seed | empty_client]
 -- Kasuje obiekty aplikacji. Auth (auth.users) zostaje.
 
 DROP TRIGGER IF EXISTS trg_protect_site_mode ON wedding_settings;

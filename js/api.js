@@ -375,6 +375,18 @@ const CloudStore = {
     return normalizeChecklistItem(data);
   },
 
+  async updateChecklistItem(id, updates) {
+    const db = {};
+    if (updates.text !== undefined) db.text = updates.text;
+    if (updates.linkPanel !== undefined) db.link_panel = updates.linkPanel || '';
+    if (updates.done !== undefined) db.done = !!updates.done;
+    if (updates.sortOrder !== undefined) db.sort_order = updates.sortOrder;
+    const { data, error } = await supabaseClient.from('checklist_items')
+      .update(db).eq('id', id).select().single();
+    if (error) throw error;
+    return normalizeChecklistItem(data);
+  },
+
   async toggleChecklistItem(id) {
     const { data: current } = await supabaseClient.from('checklist_items').select('done').eq('id', id).single();
     const { data, error } = await supabaseClient.from('checklist_items')
@@ -651,6 +663,7 @@ async function updateVendor(id, u) { return store.updateVendor(id, u); }
 async function deleteVendor(id) { return store.deleteVendor(id); }
 async function getChecklist() { return store.getChecklist(); }
 async function addChecklistItem(t, linkPanel) { return store.addChecklistItem(t, linkPanel); }
+async function updateChecklistItem(id, u) { return store.updateChecklistItem(id, u); }
 async function toggleChecklistItem(id) { return store.toggleChecklistItem(id); }
 async function deleteChecklistItem(id) { return store.deleteChecklistItem(id); }
 async function reorderChecklistItems(ids) { return store.reorderChecklistItems(ids); }

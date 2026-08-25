@@ -1,5 +1,6 @@
--- 9/9  reset → schema → settings_extras → budget → vendors → rsvp_people → gifts → checklist_panel → demo_seed
--- Przykładowe dane. Nadpisuje ustawienia i wstawia gości, plan, FAQ, budżet, dostawców, prezenty.
+-- 9a/9  Po checklist_panel — strona DEMO (pełne przykłady).
+-- Alternatywa dla klienta: empty_client.sql (zamiast tego pliku).
+-- Kolejność: reset → schema → settings_extras → budget → vendors → rsvp_people → gifts → checklist_panel → demo_seed
 -- Kody testowe: DEMO-AAAA, DEMO-PARA, DEMO-BABCIA, DEMO-KUBA, DEMO-OLA, DEMO-TOME, DEMO-MARE, DEMO-NATA
 
 UPDATE wedding_settings SET

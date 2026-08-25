@@ -562,6 +562,15 @@ const LocalStore = {
     return item;
   },
 
+  async updateChecklistItem(id, updates) {
+    const data = loadData();
+    const idx = data.checklist.findIndex(t => t.id === id);
+    if (idx === -1) return null;
+    data.checklist[idx] = normalizeChecklistItem({ ...data.checklist[idx], ...updates });
+    saveData(data);
+    return data.checklist[idx];
+  },
+
   async toggleChecklistItem(id) {
     const data = loadData();
     const item = data.checklist.find(t => t.id === id);

@@ -707,6 +707,39 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="checklist-modal">
+    <div class="modal">
+      <h3 id="checklist-modal-title">Edytuj zadanie</h3>
+      <form id="checklist-form">
+        <input type="hidden" id="checklist-edit-id">
+        <div class="form-group">
+          <label for="checklist-edit-text">Treść</label>
+          <input type="text" id="checklist-edit-text" required>
+        </div>
+        <div class="form-group">
+          <label for="checklist-edit-link">Skok do zakładki</label>
+          <select id="checklist-edit-link">
+            <option value="">Bez skoku</option>
+            <option value="guests">Goście</option>
+            <option value="diet">Dieta</option>
+            <option value="songs">Piosenki</option>
+            <option value="messages">Wiadomości</option>
+            <option value="gifts">Prezenty</option>
+            <option value="budget">Budżet</option>
+            <option value="schedule">Harmonogram</option>
+            <option value="faq">FAQ</option>
+            <option value="vendors">Dostawcy</option>
+            <option value="settings">Ustawienia</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary btn-sm" id="checklist-cancel">Anuluj</button>
+          <button type="submit" class="btn btn-primary btn-sm">Zapisz</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="js/config.js"></script>
   <script src="js/storage.js"></script>
