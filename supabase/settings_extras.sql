@@ -1,6 +1,5 @@
 -- 3/9  reset → schema → settings_extras → budget → vendors → rsvp_people → gifts → checklist_panel → [demo_seed | empty_client]
--- Potem opcjonalnie: themes.sql (jeśli baza powstała wcześniej i ma tylko classic/blush).
--- Dodatkowe pola strony: prezenty, zdjęcia, motyw, tryb publikacji.
+-- Dodatkowe pola strony: prezenty, zdjęcia, motyw (8 wariantów), tryb publikacji.
 
 ALTER TABLE wedding_settings ADD COLUMN gifts_bank_account TEXT DEFAULT '';
 ALTER TABLE wedding_settings ADD COLUMN gifts_link TEXT DEFAULT '';
