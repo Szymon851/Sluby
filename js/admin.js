@@ -51,6 +51,10 @@ function configureLoginUI() {
 function showLogin() {
   document.getElementById('login-page').style.display = 'flex';
   document.getElementById('dashboard').style.display = 'none';
+  document.body.classList.remove('admin-nav-locked');
+  document.querySelector('.admin-layout')?.classList.remove('nav-open');
+  const backdrop = document.getElementById('admin-nav-backdrop');
+  if (backdrop) backdrop.hidden = true;
 }
 
 async function showDashboard() {
@@ -367,9 +371,23 @@ function setAdminNavReorderMode(on) {
 function closeAdminMobileNav() {
   const layout = document.querySelector('.admin-layout');
   const toggle = document.getElementById('admin-menu-toggle');
+  const backdrop = document.getElementById('admin-nav-backdrop');
   if (!layout?.classList.contains('nav-open')) return;
   layout.classList.remove('nav-open');
   toggle?.setAttribute('aria-expanded', 'false');
+  if (backdrop) backdrop.hidden = true;
+  document.body.classList.remove('admin-nav-locked');
+}
+
+function setAdminMobileNavOpen(open) {
+  const layout = document.querySelector('.admin-layout');
+  const toggle = document.getElementById('admin-menu-toggle');
+  const backdrop = document.getElementById('admin-nav-backdrop');
+  if (!layout || !toggle) return;
+  layout.classList.toggle('nav-open', open);
+  toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  if (backdrop) backdrop.hidden = !open;
+  document.body.classList.toggle('admin-nav-locked', open);
 }
 
 function initNavigation() {
@@ -377,10 +395,12 @@ function initNavigation() {
 
   document.getElementById('admin-menu-toggle')?.addEventListener('click', () => {
     const layout = document.querySelector('.admin-layout');
-    const toggle = document.getElementById('admin-menu-toggle');
-    if (!layout || !toggle) return;
-    const open = layout.classList.toggle('nav-open');
-    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (!layout) return;
+    setAdminMobileNavOpen(!layout.classList.contains('nav-open'));
+  });
+
+  document.getElementById('admin-nav-backdrop')?.addEventListener('click', () => {
+    closeAdminMobileNav();
   });
 
   document.getElementById('admin-nav-reorder-btn')?.addEventListener('click', () => {
