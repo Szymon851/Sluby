@@ -21,6 +21,14 @@
   --font-heading: 'Playfair Display', Georgia, serif;
   --font-body: 'Lato', 'Segoe UI', sans-serif;
   --transition: 0.3s ease;
+  --nav-bg: rgba(255, 253, 249, 0.92);
+  --hero-bg: linear-gradient(180deg, var(--ivory) 0%, var(--cream) 60%, var(--sage-light) 100%);
+  --rsvp-bg: linear-gradient(135deg, var(--sage-light) 0%, var(--rose-light) 100%);
+  --footer-bg: #3D3A36;
+  --footer-fg: rgba(255, 255, 255, 0.72);
+  --heading-tracking: 0.01em;
+  --label-tracking: 0.08em;
+  --ornament-size: 2rem;
 }
 
 html { scroll-behavior: smooth; font-size: 16px; }
@@ -56,7 +64,7 @@ h1, h2, h3, h4 {
   left: 0;
   right: 0;
   z-index: 100;
-  background: rgba(255, 253, 249, 0.92);
+  background: var(--nav-bg);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
   transition: box-shadow var(--transition);
@@ -75,7 +83,7 @@ h1, h2, h3, h4 {
   font-family: var(--font-heading);
   font-size: 1.25rem;
   color: var(--text);
-  letter-spacing: 0.02em;
+  letter-spacing: var(--heading-tracking);
 }
 
 .nav-links {
@@ -87,7 +95,7 @@ h1, h2, h3, h4 {
 .nav-links a {
   font-size: 0.875rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--label-tracking);
   color: var(--text-muted);
   font-weight: 500;
 }
@@ -120,7 +128,7 @@ h1, h2, h3, h4 {
   justify-content: center;
   text-align: center;
   position: relative;
-  background: linear-gradient(180deg, var(--ivory) 0%, var(--cream) 60%, var(--sage-light) 100%);
+  background: var(--hero-bg);
   background-size: cover;
   background-position: center;
   padding: 100px 24px 80px;
@@ -142,7 +150,7 @@ h1, h2, h3, h4 {
 }
 
 .hero-ornament {
-  font-size: 2rem;
+  font-size: var(--ornament-size);
   color: var(--gold);
   margin-bottom: 16px;
   opacity: 0.7;
@@ -382,7 +390,7 @@ body.personalized .hero {
 
 /* ===== RSVP Form ===== */
 .rsvp-section {
-  background: linear-gradient(135deg, var(--sage-light) 0%, var(--rose-light) 100%);
+  background: var(--rsvp-bg);
 }
 
 .rsvp-form-wrapper {
@@ -674,8 +682,8 @@ body.personalized .hero {
 
 /* ===== Footer ===== */
 .footer {
-  background: var(--text);
-  color: rgba(255,255,255,0.7);
+  background: var(--footer-bg);
+  color: var(--footer-fg);
   text-align: center;
   padding: 48px 24px;
 }
@@ -703,7 +711,7 @@ body.personalized .hero {
 /* ===== Admin Layout ===== */
 .admin-page {
   min-height: 100vh;
-  background: #F0EDE8;
+  background: var(--cream);
 }
 
 .admin-header {
@@ -2345,14 +2353,261 @@ body.has-mode-banner .nav {
   margin: 8px 0 16px;
 }
 
-/* Motyw blush */
+/* Motywy kolorystyczne — wyraźnie różne palety i klimat */
 html[data-theme="blush"] {
-  --cream: #FBF6F4;
-  --ivory: #FFF9F7;
-  --sage: #B0898A;
-  --sage-dark: #8F6A6B;
-  --sage-light: #F3E6E5;
-  --rose: #C4A4A4;
+  --cream: #FBF4F2;
+  --ivory: #FFF8F6;
+  --sage: #C4878A;
+  --sage-dark: #9A6367;
+  --sage-light: #F6E6E5;
+  --rose: #D4A5A5;
+  --rose-light: #F8ECEA;
   --gold: #C9A27A;
   --gold-light: #F7EDE0;
+  --text: #4A3838;
+  --text-muted: #8A7373;
+  --border: #EADDD9;
+  --radius: 18px;
+  --radius-sm: 12px;
+  --shadow: 0 8px 28px rgba(154, 99, 103, 0.10);
+  --shadow-lg: 0 14px 44px rgba(154, 99, 103, 0.14);
+  --nav-bg: rgba(255, 248, 246, 0.94);
+  --hero-bg: linear-gradient(165deg, #FFF8F6 0%, #F8ECEA 45%, #F0D9D6 100%);
+  --rsvp-bg: linear-gradient(135deg, #F6E6E5 0%, #F7EDE0 100%);
+  --footer-bg: #5C4042;
+  --ornament-size: 2.4rem;
+  --heading-tracking: 0.03em;
+}
+
+html[data-theme="champagne"] {
+  --cream: #F7F2E8;
+  --ivory: #FBF8F1;
+  --sage: #B89B5E;
+  --sage-dark: #8F7538;
+  --sage-light: #F0E6D0;
+  --rose: #C4B09A;
+  --rose-light: #F3EBDF;
+  --gold: #C5A35A;
+  --gold-light: #F4EBD4;
+  --text: #3A3428;
+  --text-muted: #7A7160;
+  --border: #E4D9C4;
+  --radius: 4px;
+  --radius-sm: 2px;
+  --shadow: 0 2px 18px rgba(58, 52, 40, 0.07);
+  --shadow-lg: 0 10px 36px rgba(58, 52, 40, 0.11);
+  --font-heading: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
+  --nav-bg: rgba(251, 248, 241, 0.95);
+  --hero-bg: linear-gradient(180deg, #FBF8F1 0%, #F0E6D0 55%, #E8D7B0 100%);
+  --rsvp-bg: linear-gradient(160deg, #F0E6D0 0%, #F4EBD4 100%);
+  --footer-bg: #2F2A22;
+  --heading-tracking: 0.06em;
+  --label-tracking: 0.14em;
+  --ornament-size: 1.6rem;
+}
+
+html[data-theme="forest"] {
+  --cream: #F3F5F0;
+  --ivory: #F9FAF7;
+  --sage: #4F6F52;
+  --sage-dark: #355E3B;
+  --sage-light: #DDE6DC;
+  --rose: #8B7355;
+  --rose-light: #E8E2D8;
+  --gold: #A68B4B;
+  --gold-light: #EFE6CF;
+  --text: #2C332C;
+  --text-muted: #667066;
+  --border: #D5DDD4;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 6px 22px rgba(53, 94, 59, 0.09);
+  --nav-bg: rgba(249, 250, 247, 0.94);
+  --hero-bg: linear-gradient(200deg, #F9FAF7 0%, #DDE6DC 50%, #C5D4C4 100%);
+  --rsvp-bg: linear-gradient(135deg, #DDE6DC 0%, #EFE6CF 100%);
+  --footer-bg: #243226;
+  --font-heading: 'Libre Baskerville', 'Playfair Display', Georgia, serif;
+  --heading-tracking: 0;
+}
+
+html[data-theme="ocean"] {
+  --cream: #F2F6F8;
+  --ivory: #F7FBFC;
+  --sage: #5B8A9A;
+  --sage-dark: #3F6A78;
+  --sage-light: #D9E8EE;
+  --rose: #7A9EAE;
+  --rose-light: #E5F0F4;
+  --gold: #D4A574;
+  --gold-light: #F5E9DC;
+  --text: #2E3A40;
+  --text-muted: #6A7A82;
+  --border: #D3E0E6;
+  --radius: 20px;
+  --radius-sm: 14px;
+  --shadow: 0 10px 30px rgba(63, 106, 120, 0.10);
+  --shadow-lg: 0 16px 48px rgba(63, 106, 120, 0.14);
+  --font-body: 'Source Sans 3', 'Lato', 'Segoe UI', sans-serif;
+  --nav-bg: rgba(247, 251, 252, 0.94);
+  --hero-bg: radial-gradient(ellipse at top, #E5F0F4 0%, #F7FBFC 40%, #D9E8EE 100%);
+  --rsvp-bg: linear-gradient(145deg, #D9E8EE 0%, #E5F0F4 50%, #F5E9DC 100%);
+  --footer-bg: #2A3D46;
+  --ornament-size: 1.75rem;
+}
+
+html[data-theme="sunset"] {
+  --cream: #FBF5EE;
+  --ivory: #FFF9F3;
+  --sage: #D4845A;
+  --sage-dark: #B8653C;
+  --sage-light: #F6E3D6;
+  --rose: #E0A090;
+  --rose-light: #F8E8E2;
+  --gold: #E0B35C;
+  --gold-light: #F8EDD4;
+  --text: #43352C;
+  --text-muted: #856F5E;
+  --border: #EAD9C8;
+  --radius: 14px;
+  --radius-sm: 10px;
+  --shadow: 0 8px 26px rgba(184, 101, 60, 0.11);
+  --nav-bg: rgba(255, 249, 243, 0.94);
+  --hero-bg: linear-gradient(160deg, #FFF9F3 0%, #F6E3D6 40%, #F0C9A8 78%, #E8B48A 100%);
+  --rsvp-bg: linear-gradient(135deg, #F6E3D6 0%, #F8EDD4 100%);
+  --footer-bg: #4A3428;
+  --heading-tracking: 0.02em;
+}
+
+html[data-theme="midnight"] {
+  --cream: #1A1F2A;
+  --ivory: #232A38;
+  --sage: #C9A962;
+  --sage-dark: #E0C57A;
+  --sage-light: #2F384A;
+  --rose: #9AA3B5;
+  --rose-light: #2A3140;
+  --gold: #D4B56A;
+  --gold-light: #3A3340;
+  --text: #E8E4DC;
+  --text-muted: #A8A295;
+  --border: #3A4254;
+  --shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.45);
+  --radius: 8px;
+  --radius-sm: 4px;
+  --font-heading: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
+  --font-body: 'Source Sans 3', 'Lato', 'Segoe UI', sans-serif;
+  --nav-bg: rgba(26, 31, 42, 0.92);
+  --hero-bg: linear-gradient(180deg, #12161F 0%, #1A1F2A 45%, #2A3140 100%);
+  --rsvp-bg: linear-gradient(145deg, #232A38 0%, #2F384A 100%);
+  --footer-bg: #0E1118;
+  --footer-fg: rgba(232, 228, 220, 0.7);
+  --heading-tracking: 0.08em;
+  --label-tracking: 0.12em;
+  --ornament-size: 1.5rem;
+}
+
+html[data-theme="noir"] {
+  --cream: #F4F4F2;
+  --ivory: #FFFFFF;
+  --sage: #1A1A1A;
+  --sage-dark: #000000;
+  --sage-light: #EAEAE8;
+  --rose: #666666;
+  --rose-light: #F0F0EE;
+  --gold: #1A1A1A;
+  --gold-light: #EFEFEF;
+  --text: #141414;
+  --text-muted: #666666;
+  --border: #D8D8D4;
+  --shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.08);
+  --radius: 0;
+  --radius-sm: 0;
+  --font-heading: 'Source Sans 3', 'Lato', 'Segoe UI', sans-serif;
+  --font-body: 'Source Sans 3', 'Lato', 'Segoe UI', sans-serif;
+  --nav-bg: rgba(255, 255, 255, 0.96);
+  --hero-bg: linear-gradient(180deg, #FFFFFF 0%, #F4F4F2 70%, #EAEAE8 100%);
+  --rsvp-bg: linear-gradient(180deg, #EAEAE8 0%, #F4F4F2 100%);
+  --footer-bg: #111111;
+  --heading-tracking: 0.12em;
+  --label-tracking: 0.16em;
+  --ornament-size: 1.1rem;
+}
+
+html[data-theme="midnight"] .nav-toggle span,
+html[data-theme="midnight"] .lightbox-close {
+  background: var(--text);
+  color: var(--text);
+}
+
+html[data-theme="midnight"] .hero-names,
+html[data-theme="midnight"] .hero-date,
+html[data-theme="midnight"] .hero-venue {
+  color: var(--text);
+}
+
+html[data-theme="noir"] .hero-ornament,
+html[data-theme="noir"] .section-label {
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+}
+
+html[data-theme="noir"] .card:hover,
+html[data-theme="champagne"] .card:hover {
+  transform: none;
+}
+
+html[data-theme="champagne"] .section-title,
+html[data-theme="midnight"] .section-title {
+  font-weight: 600;
+}
+
+html[data-theme="ocean"] .card,
+html[data-theme="blush"] .rsvp-form-wrapper {
+  border: none;
+  box-shadow: var(--shadow-lg);
+}
+
+html[data-theme="forest"] .timeline::before {
+  background: var(--sage);
+  opacity: 0.35;
+}
+
+html[data-theme="sunset"] .btn-primary {
+  background: linear-gradient(135deg, var(--sage) 0%, #E09A5A 100%);
+}
+
+html[data-theme="noir"] .btn-primary {
+  background: var(--text);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.8125rem;
+}
+
+html[data-theme="noir"] .btn-secondary {
+  border-width: 2px;
+  border-color: var(--text);
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.8125rem;
+}
+
+html[data-theme="midnight"] .admin-header {
+  background: #0E1118;
+}
+
+html[data-theme="midnight"] .stat-card.highlight {
+  background: var(--gold);
+  border-color: var(--gold);
+}
+
+html[data-theme="midnight"] .stat-card.highlight .stat-number,
+html[data-theme="midnight"] .stat-card.highlight .stat-label {
+  color: #1A1F2A;
+}
+
+html[data-theme="noir"] .admin-header {
+  background: #000;
 }

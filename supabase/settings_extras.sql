@@ -1,4 +1,5 @@
 -- 3/9  reset → schema → settings_extras → budget → vendors → rsvp_people → gifts → checklist_panel → [demo_seed | empty_client]
+-- Potem opcjonalnie: themes.sql (jeśli baza powstała wcześniej i ma tylko classic/blush).
 -- Dodatkowe pola strony: prezenty, zdjęcia, motyw, tryb publikacji.
 
 ALTER TABLE wedding_settings ADD COLUMN gifts_bank_account TEXT DEFAULT '';
@@ -14,7 +15,10 @@ ALTER TABLE wedding_settings
 
 ALTER TABLE wedding_settings
   ADD CONSTRAINT wedding_settings_theme_check
-  CHECK (theme IN ('classic', 'blush'));
+  CHECK (theme IN (
+    'classic', 'blush', 'champagne', 'forest',
+    'ocean', 'sunset', 'midnight', 'noir'
+  ));
 
 CREATE OR REPLACE FUNCTION protect_site_mode()
 RETURNS TRIGGER

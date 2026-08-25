@@ -764,6 +764,10 @@ function initSettingsForm() {
 
   populateSettingsForm();
 
+  form.querySelector('[name="theme"]')?.addEventListener('change', (e) => {
+    applyTheme(e.target.value);
+  });
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const msg = document.getElementById('settings-message');

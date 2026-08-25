@@ -7,7 +7,7 @@ function normalizeSiteMode(mode) {
 }
 
 function applyTheme(theme) {
-  const t = theme === 'blush' ? 'blush' : 'classic';
+  const t = typeof normalizeTheme === 'function' ? normalizeTheme(theme) : (theme || 'classic');
   document.documentElement.setAttribute('data-theme', t);
 }
 

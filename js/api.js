@@ -1,6 +1,15 @@
 let supabaseClient = null;
 let store = LocalStore;
 
+const SITE_THEMES = [
+  'classic', 'blush', 'champagne', 'forest',
+  'ocean', 'sunset', 'midnight', 'noir',
+];
+
+function normalizeTheme(theme) {
+  return SITE_THEMES.includes(theme) ? theme : 'classic';
+}
+
 function isCloudConfigured() {
   return !!(CONFIG.supabaseUrl && CONFIG.supabaseAnonKey);
 }
@@ -66,7 +75,7 @@ function mapSettingsFromDb(row) {
     galleryUrls: row.gallery_urls || '',
     siteUrl: row.site_url || '',
     siteMode: row.site_mode || 'preview',
-    theme: row.theme || 'classic',
+    theme: normalizeTheme(row.theme),
   };
 }
 
@@ -90,7 +99,7 @@ function mapSettingsToDb(s) {
     hero_image_url: s.heroImageUrl || '',
     gallery_urls: s.galleryUrls || '',
     site_url: s.siteUrl,
-    theme: s.theme === 'blush' ? 'blush' : 'classic',
+    theme: normalizeTheme(s.theme),
     updated_at: new Date().toISOString(),
   };
   return row;
