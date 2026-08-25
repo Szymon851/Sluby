@@ -758,11 +758,54 @@ body.personalized .hero {
   list-style: none;
 }
 
-.admin-nav li button {
+.admin-nav-group {
+  margin-bottom: 8px;
+}
+
+.admin-nav-group-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  text-align: left;
+  padding: 10px 20px;
+  background: none;
+  border: none;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.admin-nav-group-toggle::after {
+  content: '▸';
+  font-size: 0.7rem;
+  transition: transform var(--transition);
+}
+
+.admin-nav-group.open .admin-nav-group-toggle::after {
+  transform: rotate(90deg);
+}
+
+.admin-nav-sub {
+  list-style: none;
+  display: none;
+  padding: 0;
+  margin: 0;
+}
+
+.admin-nav-group.open .admin-nav-sub {
+  display: block;
+}
+
+.admin-nav li button[data-panel] {
   display: block;
   width: 100%;
   text-align: left;
-  padding: 12px 24px;
+  padding: 10px 24px 10px 28px;
   background: none;
   border: none;
   font-family: var(--font-body);
@@ -773,12 +816,12 @@ body.personalized .hero {
   border-left: 3px solid transparent;
 }
 
-.admin-nav li button:hover {
+.admin-nav li button[data-panel]:hover {
   background: var(--sage-light);
   color: var(--text);
 }
 
-.admin-nav li button.active {
+.admin-nav li button[data-panel].active {
   background: var(--sage-light);
   color: var(--sage-dark);
   border-left-color: var(--sage);
@@ -1373,18 +1416,30 @@ tr:hover td { background: rgba(139, 154, 123, 0.04); }
 
   .admin-nav {
     display: flex;
-    overflow-x: auto;
+    flex-direction: column;
+    gap: 4px;
+    overflow-x: visible;
     padding: 0 8px;
   }
 
-  .admin-nav li button {
+  .admin-nav-group {
+    margin-bottom: 0;
+  }
+
+  .admin-nav-group.open .admin-nav-sub {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .admin-nav li button[data-panel] {
     white-space: nowrap;
     border-left: none;
     border-bottom: 3px solid transparent;
     padding: 10px 16px;
   }
 
-  .admin-nav li button.active {
+  .admin-nav li button[data-panel].active {
     border-left: none;
     border-bottom-color: var(--sage);
   }
@@ -1444,6 +1499,48 @@ tr:hover td { background: rgba(139, 154, 123, 0.04); }
 .budget-due {
   color: var(--sage-dark);
   font-weight: 600;
+}
+
+.budget-over {
+  color: #9a4a4a;
+  font-weight: 700;
+}
+
+.budget-row-paid {
+  background: color-mix(in srgb, var(--sage-light) 55%, transparent);
+}
+
+.budget-row-over {
+  background: color-mix(in srgb, #f3d6d6 70%, transparent);
+}
+
+.budget-status-hint {
+  font-size: 0.78rem;
+  color: var(--sage-dark);
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+.budget-status-hint.over {
+  color: #9a4a4a;
+}
+
+.budget-stat-over .stat-number {
+  color: #9a4a4a;
+}
+
+.vendor-link {
+  color: var(--sage-dark);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.vendor-contact {
+  white-space: nowrap;
+}
+
+.vendor-contact .btn {
+  margin: 2px 0;
 }
 
 .budget-payments-row {
@@ -1508,11 +1605,28 @@ tr:hover td { background: rgba(139, 154, 123, 0.04); }
 }
 
 .checkbox-label {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   cursor: pointer;
   font-size: 0.9375rem;
+  white-space: nowrap;
+}
+
+.form-group label.checkbox-label {
+  display: inline-flex;
+  margin-bottom: 0;
+  font-weight: 500;
+}
+
+.form-group .checkbox-label input[type="checkbox"] {
+  width: auto;
+  min-width: 18px;
+  height: 18px;
+  padding: 0;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: var(--sage);
 }
 
 #budget-category-filter {

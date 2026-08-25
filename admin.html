@@ -47,19 +47,29 @@
 
     <div class="admin-layout">
       <aside class="admin-sidebar">
-        <ul class="admin-nav">
-          <li><button type="button" class="active" data-panel="dashboard">Przegląd</button></li>
-          <li><button type="button" data-panel="guests">Goście</button></li>
-          <li><button type="button" data-panel="diet">Dieta</button></li>
-          <li><button type="button" data-panel="songs">Piosenki</button></li>
-          <li><button type="button" data-panel="messages">Wiadomości</button></li>
-          <li><button type="button" data-panel="gifts">Prezenty</button></li>
-          <li><button type="button" data-panel="budget">Budżet</button></li>
-          <li><button type="button" data-panel="schedule">Harmonogram</button></li>
-          <li><button type="button" data-panel="faq">FAQ</button></li>
-          <li><button type="button" data-panel="vendors">Dostawcy</button></li>
-          <li><button type="button" data-panel="checklist">Checklist</button></li>
-          <li><button type="button" data-panel="settings">Ustawienia</button></li>
+        <ul class="admin-nav" id="admin-nav">
+          <li class="admin-nav-group open" data-group="guests">
+            <button type="button" class="admin-nav-group-toggle" aria-expanded="true">Goście</button>
+            <ul class="admin-nav-sub">
+              <li><button type="button" class="active" data-panel="dashboard">Przegląd</button></li>
+              <li><button type="button" data-panel="schedule">Harmonogram</button></li>
+              <li><button type="button" data-panel="faq">FAQ</button></li>
+              <li><button type="button" data-panel="gifts">Prezenty</button></li>
+              <li><button type="button" data-panel="guests">Goście</button></li>
+              <li><button type="button" data-panel="diet">Dieta</button></li>
+              <li><button type="button" data-panel="songs">Piosenki</button></li>
+              <li><button type="button" data-panel="messages">Wiadomości</button></li>
+              <li><button type="button" data-panel="settings">Ustawienia</button></li>
+            </ul>
+          </li>
+          <li class="admin-nav-group" data-group="org">
+            <button type="button" class="admin-nav-group-toggle" aria-expanded="false">Organizacyjne</button>
+            <ul class="admin-nav-sub">
+              <li><button type="button" data-panel="budget">Budżet</button></li>
+              <li><button type="button" data-panel="vendors">Dostawcy</button></li>
+              <li><button type="button" data-panel="checklist">Checklist</button></li>
+            </ul>
+          </li>
         </ul>
       </aside>
 
@@ -227,7 +237,6 @@
               </select>
               <div class="toolbar-actions">
                 <button type="button" class="btn btn-sm btn-secondary" id="budget-export-btn">Eksport CSV</button>
-                <button type="button" class="btn btn-sm btn-secondary" id="budget-seed-btn">Dodaj przykładowe</button>
                 <button type="button" class="btn btn-sm btn-primary" id="budget-add-item-btn">+ Pozycja</button>
               </div>
             </div>
@@ -303,6 +312,7 @@
                   <th>Telefon</th>
                   <th>Email</th>
                   <th>Umowa</th>
+                  <th>Kontakt</th>
                   <th>Akcje</th>
                 </tr>
               </thead>
@@ -320,16 +330,16 @@
             <input type="text" id="checklist-new" placeholder="Dodaj nowe zadanie...">
             <select id="checklist-link-panel" aria-label="Skok do zakładki">
               <option value="">Bez skoku</option>
+              <option value="schedule">Harmonogram</option>
+              <option value="faq">FAQ</option>
+              <option value="gifts">Prezenty</option>
               <option value="guests">Goście</option>
               <option value="diet">Dieta</option>
               <option value="songs">Piosenki</option>
               <option value="messages">Wiadomości</option>
-              <option value="gifts">Prezenty</option>
-              <option value="budget">Budżet</option>
-              <option value="schedule">Harmonogram</option>
-              <option value="faq">FAQ</option>
-              <option value="vendors">Dostawcy</option>
               <option value="settings">Ustawienia</option>
+              <option value="budget">Budżet</option>
+              <option value="vendors">Dostawcy</option>
             </select>
             <button type="button" class="btn btn-primary btn-sm" id="checklist-add-btn">Dodaj</button>
           </div>
@@ -563,8 +573,9 @@
           </div>
         </div>
         <div class="form-group">
-          <label class="checkbox-label">
-            <input type="checkbox" id="budget-payment-paid"> Już zapłacone
+          <label class="checkbox-label" for="budget-payment-paid">
+            <input type="checkbox" id="budget-payment-paid">
+            <span>Już zapłacone</span>
           </label>
         </div>
         <div class="form-group">
@@ -720,16 +731,16 @@
           <label for="checklist-edit-link">Skok do zakładki</label>
           <select id="checklist-edit-link">
             <option value="">Bez skoku</option>
+            <option value="schedule">Harmonogram</option>
+            <option value="faq">FAQ</option>
+            <option value="gifts">Prezenty</option>
             <option value="guests">Goście</option>
             <option value="diet">Dieta</option>
             <option value="songs">Piosenki</option>
             <option value="messages">Wiadomości</option>
-            <option value="gifts">Prezenty</option>
-            <option value="budget">Budżet</option>
-            <option value="schedule">Harmonogram</option>
-            <option value="faq">FAQ</option>
-            <option value="vendors">Dostawcy</option>
             <option value="settings">Ustawienia</option>
+            <option value="budget">Budżet</option>
+            <option value="vendors">Dostawcy</option>
           </select>
         </div>
         <div class="modal-actions">

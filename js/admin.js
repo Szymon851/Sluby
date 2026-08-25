@@ -90,13 +90,27 @@ function setAdminLoading(on) {
 }
 
 function initNavigation() {
-  document.querySelectorAll('.admin-nav button').forEach(btn => {
+  document.querySelectorAll('.admin-nav-group-toggle').forEach(toggle => {
+    toggle.addEventListener('click', () => {
+      const group = toggle.closest('.admin-nav-group');
+      if (!group) return;
+      const open = group.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  });
+
+  document.querySelectorAll('.admin-nav button[data-panel]').forEach(btn => {
     btn.addEventListener('click', () => {
       const panel = btn.dataset.panel;
-      document.querySelectorAll('.admin-nav button').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.admin-nav button[data-panel]').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
       btn.classList.add('active');
       document.getElementById('panel-' + panel)?.classList.add('active');
+      const group = btn.closest('.admin-nav-group');
+      if (group && !group.classList.contains('open')) {
+        group.classList.add('open');
+        group.querySelector('.admin-nav-group-toggle')?.setAttribute('aria-expanded', 'true');
+      }
     });
   });
 
@@ -780,9 +794,35 @@ function budgetPaidTotal(item) {
   return (item.payments || []).filter(p => p.isPaid).reduce((s, p) => s + (Number(p.amount) || 0), 0);
 }
 
+function budgetBaseAmount(item) {
+  return Number(item.contracted) || Number(item.estimated) || 0;
+}
+
 function budgetRemaining(item) {
-  const base = Number(item.contracted) || Number(item.estimated) || 0;
-  return Math.max(0, base - budgetPaidTotal(item));
+  return Math.max(0, budgetBaseAmount(item) - budgetPaidTotal(item));
+}
+
+function budgetOverage(item) {
+  return Math.max(0, budgetPaidTotal(item) - budgetBaseAmount(item));
+}
+
+function isBudgetFullyPaid(item) {
+  const payments = item.payments || [];
+  if (!payments.length) return false;
+  return payments.every(p => p.isPaid) && budgetRemaining(item) === 0;
+}
+
+function budgetRemainingHtml(item) {
+  const over = budgetOverage(item);
+  if (over > 0) {
+    return `<span class="budget-over">+${formatMoney(over)}</span>
+      <div class="budget-notes">ponad umowę/szacunek</div>`;
+  }
+  if (isBudgetFullyPaid(item)) {
+    return `<span class="badge badge-confirmed">Opłacone</span>`;
+  }
+  const rem = budgetRemaining(item);
+  return `<span class="${rem > 0 ? 'budget-due' : ''}">${formatMoney(rem)}</span>`;
 }
 
 function paymentStatusClass(p) {
@@ -812,19 +852,6 @@ function initBudgetPanel() {
       URL.revokeObjectURL(a.href);
     } catch (err) {
       alert('Eksport nieudany: ' + (err.message || err));
-    }
-  });
-  document.getElementById('budget-seed-btn')?.addEventListener('click', async () => {
-    try {
-      const before = (await getBudgetItems()).length;
-      await seedBudgetDefaults();
-      const after = (await getBudgetItems()).length;
-      if (after === before && before > 0) {
-        alert('Przykładowe pozycje są już na liście. Dodaj nowe ręcznie.');
-      }
-      await renderBudget();
-    } catch (err) {
-      alert('Nie udało się dodać przykładów. Sprawdź, czy uruchomiłeś supabase/budget.sql.\n' + (err.message || ''));
     }
   });
   document.getElementById('budget-category-filter')?.addEventListener('change', () => renderBudget());
@@ -934,34 +961,47 @@ async function renderBudget() {
   const sumCon = items.reduce((s, i) => s + (Number(i.contracted) || Number(i.estimated) || 0), 0);
   const sumPaid = items.reduce((s, i) => s + budgetPaidTotal(i), 0);
   const sumRem = Math.max(0, sumCon - sumPaid);
+  const sumOver = Math.max(0, sumPaid - sumCon);
 
   setBudgetStat('budget-stat-estimated', formatMoney(sumEst));
   setBudgetStat('budget-stat-contracted', formatMoney(sumCon));
   setBudgetStat('budget-stat-paid', formatMoney(sumPaid));
-  setBudgetStat('budget-stat-remaining', formatMoney(sumRem));
+  setBudgetStat('budget-stat-remaining', sumOver > 0 ? `+${formatMoney(sumOver)}` : formatMoney(sumRem));
+  const remLabel = document.querySelector('#budget-stats .stat-card:last-child .stat-label');
+  if (remLabel) remLabel.textContent = sumOver > 0 ? 'Ponad limit' : 'Do zapłaty';
+  document.getElementById('budget-stat-remaining')?.closest('.stat-card')?.classList.toggle('budget-stat-over', sumOver > 0);
 
   if (!visible.length) {
     tbody.innerHTML = `<tr><td colspan="8" style="color:var(--text-muted);padding:24px;">
-      Brak pozycji. Kliknij „+ Pozycja” lub „Dodaj przykładowe”.
+      Brak pozycji. Kliknij „+ Pozycja”, aby dodać pierwszą.
     </td></tr>`;
   } else {
     tbody.innerHTML = visible.map(item => {
       const paid = budgetPaidTotal(item);
-      const rem = budgetRemaining(item);
+      const over = budgetOverage(item);
+      const fullyPaid = isBudgetFullyPaid(item);
       const open = budgetExpanded.has(item.id);
       const payments = (item.payments || []).slice().sort((a, b) => String(a.dueDate || '').localeCompare(String(b.dueDate || '')));
+      const rowClass = [
+        'budget-row',
+        open ? 'expanded' : '',
+        over > 0 ? 'budget-row-over' : '',
+        fullyPaid && over === 0 ? 'budget-row-paid' : '',
+      ].filter(Boolean).join(' ');
       return `
-        <tr class="budget-row ${open ? 'expanded' : ''}" data-id="${item.id}">
+        <tr class="${rowClass}" data-id="${item.id}">
           <td><button type="button" class="budget-expand" data-action="toggle" data-id="${item.id}" aria-label="Raty">${open ? '▾' : '▸'}</button></td>
           <td>${escapeHtml(item.category)}</td>
           <td>
             <strong>${escapeHtml(item.name)}</strong>
             ${item.notes ? `<div class="budget-notes">${escapeHtml(item.notes)}</div>` : ''}
+            ${fullyPaid && over === 0 ? '<div class="budget-status-hint">Wszystkie raty opłacone</div>' : ''}
+            ${over > 0 ? `<div class="budget-status-hint over">Zapłacono ${formatMoney(over)} ponad limit</div>` : ''}
           </td>
           <td class="num">${formatMoney(item.estimated)}</td>
           <td class="num">${formatMoney(item.contracted)}</td>
           <td class="num">${formatMoney(paid)}</td>
-          <td class="num ${rem > 0 ? 'budget-due' : ''}">${formatMoney(rem)}</td>
+          <td class="num">${budgetRemainingHtml(item)}</td>
           <td class="actions">
             <button type="button" class="btn btn-sm btn-secondary" data-action="add-pay" data-id="${item.id}">+ Rata</button>
             <button type="button" class="btn btn-sm btn-secondary" data-action="edit-item" data-id="${item.id}">Edytuj</button>
@@ -1217,6 +1257,12 @@ function initVendorPanel() {
   });
 }
 
+function vendorTelHref(phone) {
+  const digits = String(phone || '').replace(/[^\d+]/g, '');
+  if (!digits) return '';
+  return `tel:${digits}`;
+}
+
 function openVendorModal(item) {
   document.getElementById('vendor-modal-title').textContent = item ? 'Edytuj dostawcę' : 'Dodaj dostawcę';
   document.getElementById('vendor-edit-id').value = item?.id || '';
@@ -1236,27 +1282,40 @@ async function renderVendors() {
   try {
     items = await getVendors();
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="6" style="color:var(--text-muted);padding:20px;">
+    tbody.innerHTML = `<tr><td colspan="7" style="color:var(--text-muted);padding:20px;">
       Brak tabeli dostawców. Uruchom <code>supabase/vendors.sql</code>.
     </td></tr>`;
     return;
   }
 
-  tbody.innerHTML = items.length ? items.map(item => `
+  tbody.innerHTML = items.length ? items.map(item => {
+    const phoneHref = vendorTelHref(item.phone);
+    const emailHref = item.email ? `mailto:${encodeURIComponent(item.email)}` : '';
+    return `
     <tr>
       <td><strong>${escapeHtml(item.name)}</strong>
         ${item.notes ? `<div class="budget-notes">${escapeHtml(item.notes)}</div>` : ''}
       </td>
       <td>${escapeHtml(item.role)}</td>
-      <td>${escapeHtml(item.phone)}</td>
-      <td>${escapeHtml(item.email)}</td>
+      <td>${phoneHref
+        ? `<a class="vendor-link" href="${phoneHref}">${escapeHtml(item.phone)}</a>`
+        : escapeHtml(item.phone) || '—'}</td>
+      <td>${emailHref
+        ? `<a class="vendor-link" href="${emailHref}">${escapeHtml(item.email)}</a>`
+        : escapeHtml(item.email) || '—'}</td>
       <td>${item.contractDate ? formatRelativeDate(item.contractDate) : '—'}</td>
+      <td class="actions vendor-contact">
+        ${phoneHref ? `<a class="btn btn-sm btn-secondary" href="${phoneHref}">Zadzwoń</a>` : ''}
+        ${emailHref ? `<a class="btn btn-sm btn-secondary" href="${emailHref}">Mail</a>` : ''}
+        ${!phoneHref && !emailHref ? '—' : ''}
+      </td>
       <td class="actions">
         <button type="button" class="btn btn-sm btn-secondary" data-action="edit" data-id="${item.id}">Edytuj</button>
         <button type="button" class="btn btn-sm btn-danger" data-action="del" data-id="${item.id}">Usuń</button>
       </td>
     </tr>
-  `).join('') : '<tr><td colspan="6" style="color:var(--text-muted);padding:20px;">Brak dostawców.</td></tr>';
+  `;
+  }).join('') : '<tr><td colspan="7" style="color:var(--text-muted);padding:20px;">Brak dostawców.</td></tr>';
 
   tbody.querySelectorAll('button').forEach(btn => {
     btn.addEventListener('click', async () => {
