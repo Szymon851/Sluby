@@ -114,6 +114,7 @@ h1, h2, h3, h4 {
 /* ===== Hero ===== */
 .hero {
   min-height: 100vh;
+  min-height: 100svh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -712,10 +713,28 @@ body.personalized .hero {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+.admin-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
 }
 
 .admin-header h1 {
   font-size: 1.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-menu-toggle {
+  display: none;
 }
 
 .admin-header-actions {
@@ -951,7 +970,8 @@ body.personalized .hero {
   background: var(--ivory);
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .table-toolbar {
@@ -970,12 +990,18 @@ body.personalized .hero {
   border-radius: var(--radius-sm);
   font-size: 0.875rem;
   width: 240px;
+  max-width: 100%;
   background: var(--cream);
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 640px;
+}
+
+.budget-table {
+  min-width: 900px;
 }
 
 thead {
@@ -1443,7 +1469,37 @@ tr:hover td { background: rgba(139, 154, 123, 0.04); }
 }
 
 /* ===== Responsive ===== */
+@media (max-width: 1024px) {
+  .nav-links {
+    gap: 16px;
+  }
+
+  .nav-links a {
+    font-size: 0.8125rem;
+  }
+
+  .admin-sidebar {
+    width: 210px;
+  }
+
+  .admin-main {
+    padding: 24px;
+  }
+
+  .container {
+    padding: 0 20px;
+  }
+}
+
 @media (max-width: 768px) {
+  .container {
+    padding: 0 16px;
+  }
+
+  .section {
+    padding: 64px 0;
+  }
+
   .nav-links {
     display: none;
     position: absolute;
@@ -1452,30 +1508,100 @@ tr:hover td { background: rgba(139, 154, 123, 0.04); }
     right: 0;
     background: var(--ivory);
     flex-direction: column;
-    padding: 16px 24px;
-    gap: 16px;
+    padding: 16px 20px;
+    gap: 4px;
     border-bottom: 1px solid var(--border);
     box-shadow: var(--shadow);
   }
 
   .nav-links.open { display: flex; }
 
+  .nav-links a {
+    display: block;
+    padding: 12px 8px;
+    font-size: 0.9375rem;
+  }
+
   .nav-toggle { display: block; }
+
+  .hero {
+    padding: 88px 16px 64px;
+  }
+
+  .hero-names {
+    font-size: clamp(2rem, 10vw, 3rem);
+  }
 
   .form-row { grid-template-columns: 1fr; }
 
-  .timeline::before { left: 20px; }
-  .timeline-item { padding-left: 40px; }
-  .timeline-time { width: auto; text-align: left; }
-  .timeline-dot { left: 13px; }
+  .radio-group {
+    flex-direction: column;
+    gap: 12px;
+  }
 
-  .admin-layout { flex-direction: column; }
+  .rsvp-form-wrapper {
+    padding: 24px 18px;
+  }
+
+  .cards-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .card {
+    padding: 24px 20px;
+  }
+
+  .timeline::before { left: 12px; }
+
+  .timeline-item {
+    flex-direction: column;
+    gap: 4px;
+    padding-left: 36px;
+    padding-bottom: 28px;
+  }
+
+  .timeline-time {
+    width: auto;
+    text-align: left;
+    font-size: 0.9375rem;
+  }
+
+  .timeline-dot { left: 5px; }
+
+  .gallery-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+  }
+
+  .gifts-page-main {
+    padding: 88px 0 48px;
+  }
+
+  .privacy-main {
+    padding-top: 96px;
+  }
+
+  .admin-menu-toggle {
+    display: inline-flex;
+  }
+
+  .admin-layout {
+    flex-direction: column;
+  }
 
   .admin-sidebar {
+    display: none;
     width: 100%;
     border-right: none;
     border-bottom: 1px solid var(--border);
     padding: 8px 0 0;
+    max-height: min(70vh, 520px);
+    overflow: hidden;
+  }
+
+  .admin-layout.nav-open .admin-sidebar {
+    display: flex;
   }
 
   .admin-nav {
@@ -1483,6 +1609,7 @@ tr:hover td { background: rgba(139, 154, 123, 0.04); }
     flex-direction: column;
     gap: 4px;
     overflow-x: visible;
+    overflow-y: auto;
     padding: 0 8px;
   }
 
@@ -1502,6 +1629,8 @@ tr:hover td { background: rgba(139, 154, 123, 0.04); }
 
   .admin-nav-group.open .admin-nav-sub {
     display: flex;
+    flex-wrap: wrap;
+    gap: 0;
     overflow-x: auto;
     padding-bottom: 4px;
   }
@@ -1510,7 +1639,7 @@ tr:hover td { background: rgba(139, 154, 123, 0.04); }
     white-space: nowrap;
     border-left: none;
     border-bottom: 3px solid transparent;
-    padding: 10px 16px;
+    padding: 10px 14px;
   }
 
   .admin-nav li button[data-panel].active {
@@ -1518,7 +1647,32 @@ tr:hover td { background: rgba(139, 154, 123, 0.04); }
     border-bottom-color: var(--sage);
   }
 
-  .table-wrapper { overflow-x: auto; }
+  .admin-main {
+    padding: 16px;
+  }
+
+  .admin-panel h2 {
+    font-size: 1.4rem;
+    margin-bottom: 16px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .stat-card {
+    padding: 16px;
+  }
+
+  .stat-card .stat-number {
+    font-size: 1.75rem;
+  }
+
+  .table-toolbar input[type="search"] {
+    width: 100%;
+  }
 
   .form-actions {
     flex-direction: column;
@@ -1545,7 +1699,80 @@ tr:hover td { background: rgba(139, 154, 123, 0.04); }
     flex: 1;
   }
 
-  table { min-width: 800px; }
+  .modal-overlay {
+    padding: 12px;
+    align-items: flex-end;
+  }
+
+  .modal {
+    padding: 24px 18px;
+    max-width: 100%;
+    width: 100%;
+    border-radius: var(--radius) var(--radius) 0 0;
+    max-height: 92vh;
+  }
+
+  #send-modal .btn-row .btn {
+    flex: 1 1 calc(50% - 6px);
+    min-width: 0;
+  }
+
+  .checklist-item {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .login-box {
+    margin: 16px;
+    padding: 28px 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-header {
+    padding: 12px 14px;
+  }
+
+  .admin-header h1 {
+    font-size: 1rem;
+  }
+
+  .admin-preview-link {
+    font-size: 0.75rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .gallery-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .countdown {
+    gap: 8px;
+  }
+
+  .nav-logo {
+    font-size: 1.05rem;
+    max-width: calc(100% - 48px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.privacy-main {
+  padding-top: 120px;
+}
+
+.privacy-inner {
+  max-width: 720px;
+}
+
+.privacy-title {
+  text-align: left;
+  margin-bottom: 24px;
 }
 
 /* ===== Budżet (arkusz) ===== */
@@ -1938,7 +2165,7 @@ body:not(.page-loading) .page-loader {
 @media (max-width: 600px) {
   .gift-card {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
   }
   .gift-card-actions { width: 100%; }
   .gift-card-actions .btn { width: 100%; }

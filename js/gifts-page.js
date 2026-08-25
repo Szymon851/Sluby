@@ -12,6 +12,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.title = `Lista inspiracji — ${names}`;
     if (settings.gifts) setText('gifts-page-intro', settings.gifts);
 
+    initGiftsNav();
+
     const code = new URLSearchParams(window.location.search).get('kod')?.trim() || '';
     wireHomeLinks(code);
 
@@ -40,6 +42,22 @@ function setPageLoading(on) {
   document.body.classList.toggle('page-loading', on);
   const loader = document.getElementById('page-loader');
   if (loader) loader.hidden = !on;
+}
+
+function initGiftsNav() {
+  const toggle = document.querySelector('.nav-toggle');
+  const links = document.querySelector('.nav-links');
+  if (!toggle || !links) return;
+  toggle.addEventListener('click', () => {
+    const open = links.classList.toggle('open');
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  links.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', () => {
+      links.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
+    });
+  });
 }
 
 function setText(id, text) {

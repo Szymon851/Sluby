@@ -251,6 +251,7 @@ function bindAdminNavInteractions() {
         group.classList.add('open');
         group.querySelector('.admin-nav-group-toggle')?.setAttribute('aria-expanded', 'true');
       }
+      closeAdminMobileNav();
     });
   });
 }
@@ -363,8 +364,24 @@ function setAdminNavReorderMode(on) {
   renderAdminNav(getActiveAdminPanel());
 }
 
+function closeAdminMobileNav() {
+  const layout = document.querySelector('.admin-layout');
+  const toggle = document.getElementById('admin-menu-toggle');
+  if (!layout?.classList.contains('nav-open')) return;
+  layout.classList.remove('nav-open');
+  toggle?.setAttribute('aria-expanded', 'false');
+}
+
 function initNavigation() {
   renderAdminNav('dashboard');
+
+  document.getElementById('admin-menu-toggle')?.addEventListener('click', () => {
+    const layout = document.querySelector('.admin-layout');
+    const toggle = document.getElementById('admin-menu-toggle');
+    if (!layout || !toggle) return;
+    const open = layout.classList.toggle('nav-open');
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
 
   document.getElementById('admin-nav-reorder-btn')?.addEventListener('click', () => {
     setAdminNavReorderMode(!isAdminNavReordering());

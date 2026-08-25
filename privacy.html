@@ -6,7 +6,7 @@
   <title>Polityka prywatności — Nasz Ślub</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -16,13 +16,16 @@
       <ul class="nav-links">
         <li><a href="index.html">Strona główna</a></li>
       </ul>
+      <button type="button" class="nav-toggle" aria-label="Menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
     </div>
   </nav>
 
-  <main class="section" style="padding-top:120px;">
-    <div class="container" style="max-width:720px;">
+  <main class="section privacy-main">
+    <div class="container privacy-inner">
       <p class="section-label">RODO</p>
-      <h1 class="section-title" style="text-align:left;margin-bottom:24px;">Polityka prywatności</h1>
+      <h1 class="section-title privacy-title">Polityka prywatności</h1>
 
       <div class="legal-content">
         <p>Niniejsza polityka dotyczy strony zaproszeniowej ślubu (dalej: „Strona”) prowadzonej przez parę młodą wskazaną na Stronie (Administrator danych).</p>
@@ -60,11 +63,23 @@
     </div>
   </main>
 
-  <script src="js/config.js"></script>
-  <script src="js/storage.js"></script>
-  <script src="js/api.js"></script>
+  <script defer src="js/config.js"></script>
+  <script defer src="js/storage.js"></script>
+  <script defer src="js/api.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
+      const toggle = document.querySelector('.nav-toggle');
+      const links = document.querySelector('.nav-links');
+      if (toggle && links) {
+        toggle.addEventListener('click', () => {
+          const open = links.classList.toggle('open');
+          toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+        links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+          links.classList.remove('open');
+          toggle.setAttribute('aria-expanded', 'false');
+        }));
+      }
       try {
         if (typeof initApi === 'function') await initApi();
         if (typeof getSettings === 'function') {
