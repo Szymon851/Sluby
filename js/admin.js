@@ -89,9 +89,145 @@ function setAdminLoading(on) {
   document.getElementById('dashboard')?.classList.toggle('admin-loading', on);
 }
 
-function initNavigation() {
-  document.querySelectorAll('.admin-nav-group-toggle').forEach(toggle => {
-    toggle.addEventListener('click', () => {
+const ADMIN_NAV_STORAGE_KEY = 'sluby-admin-nav-layout';
+
+const ADMIN_PANEL_LABELS = {
+  dashboard: 'Przegląd',
+  schedule: 'Harmonogram',
+  faq: 'FAQ',
+  gifts: 'Prezenty',
+  guests: 'Goście',
+  diet: 'Dieta',
+  songs: 'Piosenki',
+  messages: 'Wiadomości',
+  settings: 'Ustawienia',
+  budget: 'Budżet',
+  vendors: 'Dostawcy',
+  checklist: 'Checklist',
+};
+
+function getDefaultAdminNav() {
+  return [
+    {
+      id: 'guests',
+      label: 'Goście',
+      panels: ['dashboard', 'schedule', 'faq', 'gifts', 'guests', 'diet', 'songs', 'messages', 'settings'],
+    },
+    {
+      id: 'org',
+      label: 'Organizacyjne',
+      panels: ['budget', 'vendors', 'checklist'],
+    },
+  ];
+}
+
+function loadAdminNavLayout() {
+  try {
+    const raw = localStorage.getItem(ADMIN_NAV_STORAGE_KEY);
+    if (!raw) return normalizeAdminNavLayout(null);
+    return normalizeAdminNavLayout(JSON.parse(raw));
+  } catch {
+    return normalizeAdminNavLayout(null);
+  }
+}
+
+function saveAdminNavLayout(groups) {
+  const normalized = normalizeAdminNavLayout({ groups });
+  localStorage.setItem(ADMIN_NAV_STORAGE_KEY, JSON.stringify({ groups: normalized }));
+  return normalized;
+}
+
+function normalizeAdminNavLayout(saved) {
+  const defaults = getDefaultAdminNav();
+  const allPanels = defaults.flatMap(g => g.panels);
+  const defaultLabels = Object.fromEntries(defaults.map(g => [g.id, g.label]));
+  const used = new Set();
+  const source = Array.isArray(saved?.groups) && saved.groups.length ? saved.groups : defaults;
+  const groups = [];
+
+  source.forEach((g, idx) => {
+    const id = String(g.id || `group-${idx}`);
+    const panels = (g.panels || []).filter(p => allPanels.includes(p) && !used.has(p));
+    panels.forEach(p => used.add(p));
+    groups.push({
+      id,
+      label: String(g.label || defaultLabels[id] || id),
+      panels,
+    });
+  });
+
+  const missing = allPanels.filter(p => !used.has(p));
+  if (missing.length) {
+    if (!groups.length) groups.push({ id: 'guests', label: 'Goście', panels: [] });
+    groups[0].panels.push(...missing);
+  }
+
+  defaults.forEach(def => {
+    if (!groups.some(g => g.id === def.id)) {
+      groups.push({ id: def.id, label: def.label, panels: [] });
+    }
+  });
+
+  return groups;
+}
+
+function getActiveAdminPanel() {
+  return document.querySelector('.admin-nav button[data-panel].active')?.dataset.panel
+    || document.querySelector('.admin-panel.active')?.id?.replace(/^panel-/, '')
+    || 'dashboard';
+}
+
+function isAdminNavReordering() {
+  return document.getElementById('admin-nav')?.classList.contains('admin-nav-reordering');
+}
+
+function renderAdminNav(activePanel) {
+  const nav = document.getElementById('admin-nav');
+  if (!nav) return;
+  const active = activePanel || getActiveAdminPanel();
+  const reordering = nav.classList.contains('admin-nav-reordering');
+  const groups = loadAdminNavLayout();
+  const openIds = new Set(
+    [...nav.querySelectorAll('.admin-nav-group.open')].map(el => el.dataset.group)
+  );
+  if (!openIds.size) openIds.add(groups[0]?.id);
+
+  nav.innerHTML = groups.map(group => {
+    const open = reordering || openIds.has(group.id) || group.panels.includes(active);
+    return `
+      <li class="admin-nav-group ${open ? 'open' : ''}" data-group="${escapeHtml(group.id)}" draggable="${reordering}">
+        <button type="button" class="admin-nav-group-toggle" aria-expanded="${open ? 'true' : 'false'}">
+          <span class="admin-nav-drag-handle" aria-hidden="true">⋮⋮</span>
+          <span class="admin-nav-group-label">${escapeHtml(group.label)}</span>
+        </button>
+        <ul class="admin-nav-sub">
+          ${group.panels.map(panel => `
+            <li class="admin-nav-item" data-panel-item="${escapeHtml(panel)}" draggable="${reordering}">
+              <button type="button" class="${panel === active ? 'active' : ''}" data-panel="${escapeHtml(panel)}">
+                <span class="admin-nav-drag-handle" aria-hidden="true">⋮⋮</span>
+                ${escapeHtml(ADMIN_PANEL_LABELS[panel] || panel)}
+              </button>
+            </li>
+          `).join('')}
+        </ul>
+      </li>
+    `;
+  }).join('');
+
+  bindAdminNavInteractions();
+  if (reordering) enableAdminNavSortable();
+}
+
+function bindAdminNavInteractions() {
+  const nav = document.getElementById('admin-nav');
+  if (!nav) return;
+
+  nav.querySelectorAll('.admin-nav-group-toggle').forEach(toggle => {
+    toggle.addEventListener('click', (e) => {
+      if (isAdminNavReordering()) {
+        e.preventDefault();
+        return;
+      }
       const group = toggle.closest('.admin-nav-group');
       if (!group) return;
       const open = group.classList.toggle('open');
@@ -99,10 +235,14 @@ function initNavigation() {
     });
   });
 
-  document.querySelectorAll('.admin-nav button[data-panel]').forEach(btn => {
-    btn.addEventListener('click', () => {
+  nav.querySelectorAll('button[data-panel]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      if (isAdminNavReordering()) {
+        e.preventDefault();
+        return;
+      }
       const panel = btn.dataset.panel;
-      document.querySelectorAll('.admin-nav button[data-panel]').forEach(b => b.classList.remove('active'));
+      nav.querySelectorAll('button[data-panel]').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
       btn.classList.add('active');
       document.getElementById('panel-' + panel)?.classList.add('active');
@@ -112,6 +252,128 @@ function initNavigation() {
         group.querySelector('.admin-nav-group-toggle')?.setAttribute('aria-expanded', 'true');
       }
     });
+  });
+}
+
+function serializeAdminNavFromDom() {
+  const nav = document.getElementById('admin-nav');
+  return [...nav.querySelectorAll('.admin-nav-group')].map(group => ({
+    id: group.dataset.group,
+    label: group.querySelector('.admin-nav-group-label')?.textContent?.trim() || group.dataset.group,
+    panels: [...group.querySelectorAll('button[data-panel]')].map(btn => btn.dataset.panel),
+  }));
+}
+
+function persistAdminNavFromDom() {
+  saveAdminNavLayout(serializeAdminNavFromDom());
+}
+
+function enableAdminNavSortable() {
+  const nav = document.getElementById('admin-nav');
+  if (!nav) return;
+  let dragEl = null;
+  let dragKind = null;
+
+  const clearOver = () => {
+    nav.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  };
+
+  nav.querySelectorAll('.admin-nav-group').forEach(group => {
+    group.addEventListener('dragstart', (e) => {
+      if (!isAdminNavReordering()) return;
+      if (e.target.closest('.admin-nav-item')) return;
+      dragEl = group;
+      dragKind = 'group';
+      group.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', group.dataset.group || 'group');
+    });
+    group.addEventListener('dragend', () => {
+      group.classList.remove('dragging');
+      clearOver();
+      if (dragEl && dragKind === 'group') persistAdminNavFromDom();
+      dragEl = null;
+      dragKind = null;
+    });
+    group.addEventListener('dragover', (e) => {
+      if (!dragEl || dragKind !== 'group' || dragEl === group) return;
+      e.preventDefault();
+      group.classList.add('drag-over');
+      const rect = group.getBoundingClientRect();
+      const after = e.clientY > rect.top + rect.height / 2;
+      if (after) group.after(dragEl);
+      else group.before(dragEl);
+    });
+  });
+
+  nav.querySelectorAll('.admin-nav-item').forEach(item => {
+    item.addEventListener('dragstart', (e) => {
+      if (!isAdminNavReordering()) return;
+      e.stopPropagation();
+      dragEl = item;
+      dragKind = 'panel';
+      item.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', item.dataset.panelItem || 'panel');
+    });
+    item.addEventListener('dragend', () => {
+      item.classList.remove('dragging');
+      clearOver();
+      if (dragEl && dragKind === 'panel') persistAdminNavFromDom();
+      dragEl = null;
+      dragKind = null;
+    });
+    item.addEventListener('dragover', (e) => {
+      if (!dragEl || dragKind !== 'panel' || dragEl === item) return;
+      e.preventDefault();
+      e.stopPropagation();
+      item.classList.add('drag-over');
+      const rect = item.getBoundingClientRect();
+      const after = e.clientY > rect.top + rect.height / 2;
+      if (after) item.after(dragEl);
+      else item.before(dragEl);
+    });
+  });
+
+  nav.querySelectorAll('.admin-nav-sub').forEach(list => {
+    list.addEventListener('dragover', (e) => {
+      if (!dragEl || dragKind !== 'panel') return;
+      e.preventDefault();
+      if (list.children.length === 0 || e.target === list) {
+        list.appendChild(dragEl);
+      }
+    });
+  });
+}
+
+function setAdminNavReorderMode(on) {
+  const nav = document.getElementById('admin-nav');
+  const btn = document.getElementById('admin-nav-reorder-btn');
+  const resetBtn = document.getElementById('admin-nav-reset-btn');
+  const hint = document.getElementById('admin-nav-reorder-hint');
+  if (!nav || !btn) return;
+
+  nav.classList.toggle('admin-nav-reordering', on);
+  btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  btn.textContent = on ? 'Gotowe' : 'Przestaw';
+  btn.classList.toggle('btn-primary', on);
+  btn.classList.toggle('btn-secondary', !on);
+  if (resetBtn) resetBtn.hidden = !on;
+  if (hint) hint.hidden = !on;
+  renderAdminNav(getActiveAdminPanel());
+}
+
+function initNavigation() {
+  renderAdminNav('dashboard');
+
+  document.getElementById('admin-nav-reorder-btn')?.addEventListener('click', () => {
+    setAdminNavReorderMode(!isAdminNavReordering());
+  });
+
+  document.getElementById('admin-nav-reset-btn')?.addEventListener('click', () => {
+    if (!confirm('Przywrócić domyślną kolejność menu?')) return;
+    localStorage.removeItem(ADMIN_NAV_STORAGE_KEY);
+    renderAdminNav(getActiveAdminPanel());
   });
 
   document.getElementById('logout-btn')?.addEventListener('click', async () => {
@@ -258,11 +520,7 @@ async function renderChecklist() {
   if (!container) return;
 
   const items = await getChecklist();
-  const panelLabels = {
-    guests: 'Goście', diet: 'Dieta', songs: 'Piosenki', messages: 'Wiadomości',
-    gifts: 'Prezenty', budget: 'Budżet', schedule: 'Harmonogram', faq: 'FAQ',
-    vendors: 'Dostawcy', settings: 'Ustawienia', dashboard: 'Przegląd',
-  };
+  const panelLabels = ADMIN_PANEL_LABELS;
 
   container.innerHTML = items.map(item => `
     <div class="checklist-item sortable-item ${item.done ? 'done' : ''}" draggable="true" data-id="${item.id}">

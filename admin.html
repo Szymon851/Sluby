@@ -47,30 +47,12 @@
 
     <div class="admin-layout">
       <aside class="admin-sidebar">
-        <ul class="admin-nav" id="admin-nav">
-          <li class="admin-nav-group open" data-group="guests">
-            <button type="button" class="admin-nav-group-toggle" aria-expanded="true">Goście</button>
-            <ul class="admin-nav-sub">
-              <li><button type="button" class="active" data-panel="dashboard">Przegląd</button></li>
-              <li><button type="button" data-panel="schedule">Harmonogram</button></li>
-              <li><button type="button" data-panel="faq">FAQ</button></li>
-              <li><button type="button" data-panel="gifts">Prezenty</button></li>
-              <li><button type="button" data-panel="guests">Goście</button></li>
-              <li><button type="button" data-panel="diet">Dieta</button></li>
-              <li><button type="button" data-panel="songs">Piosenki</button></li>
-              <li><button type="button" data-panel="messages">Wiadomości</button></li>
-              <li><button type="button" data-panel="settings">Ustawienia</button></li>
-            </ul>
-          </li>
-          <li class="admin-nav-group" data-group="org">
-            <button type="button" class="admin-nav-group-toggle" aria-expanded="false">Organizacyjne</button>
-            <ul class="admin-nav-sub">
-              <li><button type="button" data-panel="budget">Budżet</button></li>
-              <li><button type="button" data-panel="vendors">Dostawcy</button></li>
-              <li><button type="button" data-panel="checklist">Checklist</button></li>
-            </ul>
-          </li>
-        </ul>
+        <ul class="admin-nav" id="admin-nav"></ul>
+        <div class="admin-nav-footer">
+          <button type="button" class="btn btn-sm btn-secondary" id="admin-nav-reorder-btn" aria-pressed="false">Przestaw</button>
+          <button type="button" class="btn btn-sm btn-secondary" id="admin-nav-reset-btn" hidden>Domyślnie</button>
+          <p class="admin-nav-reorder-hint" id="admin-nav-reorder-hint" hidden>Przeciągnij kategorie i zakładki, potem kliknij Gotowe.</p>
+        </div>
       </aside>
 
       <main class="admin-main">
